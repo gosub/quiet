@@ -223,8 +223,13 @@ PAGE = r"""<!doctype html>
     drafts.unshift(d); activeId = d.id; persist(); renderList(); showEditor(); titleInput.focus();
   }
   function saveCurrent() {
+    clearTimeout(saveTimer);
     const d = activeDraft();
     if (!d) return;
+    if (d.title === titleInput.value && d.content === contentInput.value) {
+      $("saveLabel").textContent = "Salvato in questo browser";
+      return;
+    }
     d.title = titleInput.value;
     d.content = contentInput.value;
     d.updatedAt = now();
