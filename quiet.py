@@ -195,7 +195,7 @@ PAGE = r"""<!doctype html>
   const $ = (id) => document.getElementById(id);
   const titleInput = $("title"), contentInput = $("content");
   let drafts = [], activeId = null, saveTimer = null, noticeTimer = null, focusMode = false;
-  let outbox = {}, flushing = false, flushAgain = false, retryTimer = null, saveError = null, lastSavedAt = null;
+  let outbox = {}, flushing = false, flushAgain = false, retryTimer = null, saveError = null, lastSavedAt = null, firstPendingAt = 0;
 
   const uid = () => (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : String(Date.now()) + Math.random().toString(16).slice(2);
   const now = () => new Date().toISOString();
@@ -343,7 +343,7 @@ PAGE = r"""<!doctype html>
     drafts.unshift(d); activeId = d.id; queuePut(d); renderList(); showEditor(); titleInput.focus();
   }
   function saveCurrent() {
-    clearTimeout(saveTimer); saveTimer = null;
+    clearTimeout(saveTimer); saveTimer = null; firstPendingAt = 0;
     const d = activeDraft();
     if (!d) return;
     if (d.title === titleInput.value && d.content === contentInput.value) {
@@ -357,6 +357,8 @@ PAGE = r"""<!doctype html>
     renderList();
     updateCounts();
   }
+  // Autosave: 180ms after typing pauses, and at least every 2s during
+  // continuous typing so a long uninterrupted burst is never all at risk.
   function scheduleSave() {
     if (!activeDraft()) {
       // Never let typed text exist without a draft to hold it.
@@ -364,7 +366,8 @@ PAGE = r"""<!doctype html>
       drafts.unshift(d); activeId = d.id; showEditorChrome();
     }
     clearTimeout(saveTimer);
-    saveTimer = setTimeout(saveCurrent, 180);
+    if (!firstPendingAt) firstPendingAt = Date.now();
+    saveTimer = setTimeout(saveCurrent, Date.now() - firstPendingAt >= 2000 ? 0 : 180);
     refreshSaveLabel();
     updateCounts();
   }
@@ -450,7 +453,7 @@ PAGE = r"""<!doctype html>
   function deleteCurrent() {
     const d = activeDraft(); if (!d) return;
     if (!confirm('Eliminare "' + (d.title.trim() || "Senza titolo") + '"? Questa azione non si può annullare.')) return;
-    clearTimeout(saveTimer); saveTimer = null;
+    clearTimeout(saveTimer); saveTimer = null; firstPendingAt = 0;
     drafts = drafts.filter(item => item.id !== d.id);
     activeId = drafts.length ? [...drafts].sort((a,b) => (b.updatedAt || "").localeCompare(a.updatedAt || ""))[0].id : null;
     queueDelete(d.id); renderList(); showEditor();
