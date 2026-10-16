@@ -2,7 +2,7 @@
 """A tiny, dependency-free local writing app.
 
 Run:
-    python3 app.py
+    python3 quiet.py
 Then open http://127.0.0.1:8765 in your browser.
 Drafts are stored in the browser's localStorage, not on the Python server.
 """
@@ -410,7 +410,7 @@ def main():
         webbrowser.open(url)
         server.serve_forever()
     except KeyboardInterrupt:
-        print("\\nStopping Quiet.")
+        print("\nStopping Quiet.")
     finally:
         server.server_close()
 
