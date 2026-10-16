@@ -197,7 +197,7 @@ PAGE = r"""<!doctype html>
 (() => {
   const LEGACY_KEY = "quiet-writing-drafts-v1";  // drafts lived here before the SQLite backend
   const SETTINGS_KEY = "quiet-writing-settings-v1";
-  const OUTBOX_KEY = "quiet-unsaved-v1";         // edits not yet confirmed by the server
+  const OUTBOX_PREFIX = "quiet-unsaved-v1";      // edits not yet confirmed by the server, one key per window
   const TOKEN = "__QUIET_TOKEN__";
   const $ = (id) => document.getElementById(id);
   const titleInput = $("title"), contentInput = $("content");
@@ -222,6 +222,7 @@ PAGE = r"""<!doctype html>
   // edited: title/content changed locally since the server last confirmed them.
   const newDraft = () => { const t = now(); return { id: uid(), title: "", content: "", createdAt: t, updatedAt: t, changedAt: t, deletedAt: null, rev: 0, edited: false }; };
   const fromServer = (d) => ({ ...d, edited: false });
+  const OUTBOX_KEY = OUTBOX_PREFIX + ":" + uid();
   const wordTotal = (text) => (text.trim().match(/\S+/g) || []).length;
 
   function readSettings() {
@@ -252,11 +253,34 @@ PAGE = r"""<!doctype html>
       return r.status === 204 ? null : r.json();
     });
   }
-  function readOutbox() {
+  // Each window holds a lock named after its outbox for as long as it lives,
+  // so another window can tell a live outbox from one a closed window left.
+  function holdOutboxLock() {
+    if (!navigator.locks) return Promise.resolve();
+    return new Promise(granted => navigator.locks.request(OUTBOX_KEY, () => { granted(); return new Promise(() => {}); }));
+  }
+  async function adoptOrphanOutboxes() {
+    const keys = [];
     try {
-      const o = JSON.parse(localStorage.getItem(OUTBOX_KEY) || "{}");
-      return o && typeof o === "object" && !Array.isArray(o) ? o : {};
-    } catch (e) { return {}; }
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k === OUTBOX_PREFIX || (k.startsWith(OUTBOX_PREFIX + ":") && k !== OUTBOX_KEY)) keys.push(k);
+      }
+    } catch (e) { return; }
+    const stamp = (e) => e.op === "delete" ? "\uffff" : (e.draft.changedAt || e.draft.updatedAt || "");
+    const adopt = (key) => {
+      let entries;
+      try { entries = JSON.parse(localStorage.getItem(key) || "{}"); localStorage.removeItem(key); } catch (e) { return; }
+      for (const [id, entry] of Object.entries(entries || {})) {
+        if (!outbox[id] || stamp(entry) > stamp(outbox[id])) outbox[id] = entry;
+      }
+    };
+    for (const key of keys) {
+      // The unsuffixed key predates per-window outboxes and has no owner.
+      if (key === OUTBOX_PREFIX || !navigator.locks) adopt(key);
+      else await navigator.locks.request(key, { ifAvailable: true }, lock => { if (lock) adopt(key); });
+    }
+    writeOutbox();
   }
   function writeOutbox() {
     try {
@@ -374,7 +398,8 @@ PAGE = r"""<!doctype html>
   }
   async function load() {
     readSettings();
-    outbox = readOutbox();
+    await holdOutboxLock();
+    await adoptOrphanOutboxes();
     await migrateLegacy();
     try { drafts = (await api("GET", "/api/drafts")).map(fromServer); }
     catch (e) { drafts = []; saveError = e; showNotice("Impossibile leggere gli scritti dal server. Ricarica la pagina."); }
