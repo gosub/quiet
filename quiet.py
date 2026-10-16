@@ -218,7 +218,10 @@ PAGE = r"""<!doctype html>
   const byDeleted = (a, b) => (b.deletedAt || "").localeCompare(a.deletedAt || "");
   const latestLiveId = () => (live().sort(byUpdated)[0] || {}).id || null;
   const titleOf = (d) => d.title.trim() || "Senza titolo";
-  const newDraft = () => { const t = now(); return { id: uid(), title: "", content: "", createdAt: t, updatedAt: t, changedAt: t, deletedAt: null }; };
+  // rev: last server revision this window saw (0 = not on the server yet).
+  // edited: title/content changed locally since the server last confirmed them.
+  const newDraft = () => { const t = now(); return { id: uid(), title: "", content: "", createdAt: t, updatedAt: t, changedAt: t, deletedAt: null, rev: 0, edited: false }; };
+  const fromServer = (d) => ({ ...d, edited: false });
   const wordTotal = (text) => (text.trim().match(/\S+/g) || []).length;
 
   function readSettings() {
@@ -240,8 +243,12 @@ PAGE = r"""<!doctype html>
       method, keepalive: !!keepalive,
       headers: { "Content-Type": "application/json", "X-Quiet-Token": TOKEN },
       body: body === undefined ? undefined : JSON.stringify(body),
-    }).then(r => {
-      if (!r.ok) { const err = new Error("HTTP " + r.status); err.status = r.status; throw err; }
+    }).then(async r => {
+      if (!r.ok) {
+        const err = new Error("HTTP " + r.status); err.status = r.status;
+        try { err.body = await r.json(); } catch (e) { /* no JSON body */ }
+        throw err;
+      }
       return r.status === 204 ? null : r.json();
     });
   }
@@ -262,7 +269,7 @@ PAGE = r"""<!doctype html>
     if (entry.op === "delete") return api("DELETE", path, undefined, keepalive);
     // Outbox entries saved before the trash existed lack changedAt/deletedAt.
     const d = entry.draft;
-    return api("PUT", path, { ...d, changedAt: d.changedAt || d.updatedAt, deletedAt: d.deletedAt || null }, keepalive);
+    return api("PUT", path, { ...d, changedAt: d.changedAt || d.updatedAt, deletedAt: d.deletedAt || null, baseRev: d.rev || 0 }, keepalive);
   }
   function queuePut(d) { outbox[d.id] = { op: "put", draft: { ...d } }; writeOutbox(); flush(); }
   function queueDelete(id) { outbox[id] = { op: "delete" }; writeOutbox(); flush(); }
@@ -271,8 +278,17 @@ PAGE = r"""<!doctype html>
     flushing = true; clearTimeout(retryTimer);
     try {
       for (const [id, entry] of Object.entries(outbox)) {
-        await send(id, entry, false);
+        let res;
+        try { res = await send(id, entry, false); }
+        catch (e) {
+          if (e.status !== 409 || !e.body || !e.body.draft) throw e;
+          const latest = outbox[id] && outbox[id].op === "put" ? outbox[id].draft : entry.draft;
+          if (outbox[id] === entry || outbox[id] && outbox[id].op === "put") delete outbox[id];
+          resolveConflict(latest, fromServer(e.body.draft));
+          continue;
+        }
         if (outbox[id] === entry) delete outbox[id];  // keep it if a newer edit replaced it meanwhile
+        if (entry.op === "put") acknowledge(id, res.rev);
       }
       writeOutbox();
       if (saveError) showNotice("Salvataggio ripristinato");
@@ -291,6 +307,39 @@ PAGE = r"""<!doctype html>
       refreshSaveLabel();
       if (flushAgain) { flushAgain = false; flush(); }
     }
+  }
+  function acknowledge(id, rev) {
+    const d = drafts.find(x => x.id === id);
+    if (d) { d.rev = rev; if (!outbox[id]) d.edited = false; }
+    // A newer snapshot queued while this write was in flight builds on it.
+    if (outbox[id] && outbox[id].op === "put") outbox[id].draft.rev = rev;
+  }
+  // Another window changed this draft since this one last saw it. Nothing is
+  // overwritten: the server version stays, and local edits become a copy.
+  function resolveConflict(local, server) {
+    const wasActive = activeId === server.id;
+    let mine = local;
+    if (wasActive) {
+      // The editor may hold keystrokes newer than the queued snapshot.
+      clearTimeout(saveTimer); saveTimer = null; firstPendingAt = 0;
+      const changed = titleInput.value !== local.title || contentInput.value !== local.content;
+      mine = { ...local, title: titleInput.value, content: contentInput.value, edited: local.edited || changed };
+    }
+    const i = drafts.findIndex(d => d.id === server.id);
+    if (i >= 0) drafts[i] = server; else drafts.push(server);
+    // Snapshots from before revisions existed carry no 'edited' flag: assume edited.
+    const edited = mine.edited !== false;
+    if (edited && (mine.title !== server.title || mine.content !== server.content)) {
+      const copy = { ...newDraft(), title: (mine.title.trim() || "Senza titolo") + " (versione in conflitto)", content: mine.content, edited: true };
+      drafts.unshift(copy); queuePut(copy);
+      if (wasActive) { activeId = copy.id; view = "drafts"; }
+      showNotice("«" + titleOf(server) + "» è stato modificato in un'altra finestra. Le tue modifiche sono in una copia.");
+    } else if ((mine.deletedAt || null) !== (server.deletedAt || null)) {
+      // Only the trash state differed: reapply it on top of the newer version.
+      server.deletedAt = mine.deletedAt || null; server.changedAt = now(); queuePut(server);
+    }
+    renderList();
+    if (wasActive) showEditor();
   }
   function flushOnExit() {
     saveCurrent();
@@ -327,7 +376,7 @@ PAGE = r"""<!doctype html>
     readSettings();
     outbox = readOutbox();
     await migrateLegacy();
-    try { drafts = await api("GET", "/api/drafts"); }
+    try { drafts = (await api("GET", "/api/drafts")).map(fromServer); }
     catch (e) { drafts = []; saveError = e; showNotice("Impossibile leggere gli scritti dal server. Ricarica la pagina."); }
     // Overlay edits the server hasn't confirmed yet, so nothing typed is hidden.
     for (const [id, entry] of Object.entries(outbox)) {
@@ -369,6 +418,7 @@ PAGE = r"""<!doctype html>
     d.title = titleInput.value;
     d.content = contentInput.value;
     d.updatedAt = d.changedAt = now();
+    d.edited = true;
     queuePut(d);
     renderList();
     updateCounts();
@@ -434,8 +484,8 @@ PAGE = r"""<!doctype html>
     const d = activeDraft();
     showEditorChrome();
     if (d) {
-      titleInput.value = d.title || "";
-      contentInput.value = d.content || "";
+      setValue(titleInput, d.title || "");
+      setValue(contentInput, d.content || "");
       fitTitle();
       $("dateLine").textContent = d.deletedAt
         ? "Nel cestino dal " + formatDate(d.deletedAt) + " · sola lettura"
@@ -446,6 +496,14 @@ PAGE = r"""<!doctype html>
       titleInput.value = ""; contentInput.value = "";
       $("wordCount").textContent = "0 parole"; $("charCount").textContent = "0 caratteri";
     }
+  }
+  // Replace a field's text without moving the caret when nothing changed,
+  // and keeping it roughly in place when something did.
+  function setValue(el, value) {
+    if (el.value === value) return;
+    const start = el.selectionStart, end = el.selectionEnd, focused = document.activeElement === el;
+    el.value = value;
+    if (focused) el.setSelectionRange(Math.min(start, value.length), Math.min(end, value.length));
   }
   function fitTitle() {
     titleInput.style.height = "auto"; titleInput.style.height = titleInput.scrollHeight + "px";
@@ -600,9 +658,13 @@ CREATE TABLE IF NOT EXISTS drafts (
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL,           -- last edit of title/content, shown to the user
     deleted_at TEXT,                    -- set while the draft is in the trash
-    changed_at TEXT                     -- last change of any kind; orders concurrent writes
+    changed_at TEXT,                    -- last change of any kind (edit, trash, restore)
+    rev        INTEGER NOT NULL DEFAULT 1  -- bumped on every write; detects edits made on a stale copy
 )
 """
+SELECT_DRAFTS = (
+    "SELECT id, title, content, created_at AS createdAt, updated_at AS updatedAt,"
+    " deleted_at AS deletedAt, changed_at AS changedAt, rev FROM drafts")
 
 def connect():
     conn = sqlite3.connect(DB_PATH, timeout=10)
@@ -613,10 +675,11 @@ def init_db():
     with closing(connect()) as conn, conn:
         conn.execute(SCHEMA)
         columns = {r["name"] for r in conn.execute("PRAGMA table_info(drafts)")}
-        # Databases created before the trash existed lack these columns.
-        for column in ("deleted_at", "changed_at"):
+        # Databases from older versions lack these columns.
+        added = {"deleted_at": "TEXT", "changed_at": "TEXT", "rev": "INTEGER NOT NULL DEFAULT 1"}
+        for column, definition in added.items():
             if column not in columns:
-                conn.execute(f"ALTER TABLE drafts ADD COLUMN {column} TEXT")
+                conn.execute(f"ALTER TABLE drafts ADD COLUMN {column} {definition}")
         conn.execute("UPDATE drafts SET changed_at = updated_at WHERE changed_at IS NULL")
 
 def draft_row(draft_id, data):
@@ -692,10 +755,7 @@ class Handler(BaseHTTPRequestHandler):
             self._send(200, PAGE_BYTES, "text/html; charset=utf-8")
         elif path == "/api/drafts":
             with closing(connect()) as conn:
-                rows = conn.execute(
-                    "SELECT id, title, content, created_at AS createdAt, updated_at AS updatedAt,"
-                    " deleted_at AS deletedAt, changed_at AS changedAt"
-                    " FROM drafts ORDER BY updated_at DESC").fetchall()
+                rows = conn.execute(SELECT_DRAFTS + " ORDER BY updated_at DESC").fetchall()
             self._json(200, [dict(r) for r in rows])
         else:
             self._json(404, {"error": "not found"})
@@ -704,19 +764,31 @@ class Handler(BaseHTTPRequestHandler):
         m = DRAFT_PATH.match(path)
         if not m:
             return self._json(404, {"error": "not found"})
-        row = draft_row(m.group(1), self._body())
+        data = self._body()
+        row = draft_row(m.group(1), data)
+        draft_id, title, content, _, updated_at, deleted_at, changed_at = row
+        base_rev = data.get("baseRev")
+        if not isinstance(base_rev, int) or isinstance(base_rev, bool) or base_rev < 0:
+            raise ValueError("baseRev must be a non-negative integer")
         with closing(connect()) as conn, conn:
-            # Ignore writes older than what is stored, so out-of-order requests
-            # (or a stale second tab) can't roll a draft back.
-            conn.execute(
-                "INSERT INTO drafts (id, title, content, created_at, updated_at, deleted_at, changed_at)"
-                " VALUES (?, ?, ?, ?, ?, ?, ?)"
-                " ON CONFLICT(id) DO UPDATE SET title = excluded.title, content = excluded.content,"
-                " updated_at = excluded.updated_at, deleted_at = excluded.deleted_at,"
-                " changed_at = excluded.changed_at"
-                " WHERE excluded.changed_at >= COALESCE(drafts.changed_at, drafts.updated_at)",
-                row)
-        self._send(204)
+            # Optimistic concurrency: a write applies only on top of the revision
+            # the client last saw. If another window changed the draft meanwhile,
+            # answer 409 with the current version and let the client reconcile.
+            cur = conn.execute(
+                "UPDATE drafts SET title = ?, content = ?, updated_at = ?, deleted_at = ?,"
+                " changed_at = ?, rev = rev + 1 WHERE id = ? AND rev = ?",
+                (title, content, updated_at, deleted_at, changed_at, draft_id, base_rev))
+            if cur.rowcount == 0:
+                current = conn.execute(SELECT_DRAFTS + " WHERE id = ?", (draft_id,)).fetchone()
+                if current is not None:
+                    return self._json(409, {"draft": dict(current)})
+                # A new draft, or one deleted for good in another window while
+                # this one was editing it: (re)create it rather than lose the text.
+                conn.execute(
+                    "INSERT INTO drafts (id, title, content, created_at, updated_at, deleted_at, changed_at)"
+                    " VALUES (?, ?, ?, ?, ?, ?, ?)", row)
+            rev = conn.execute("SELECT rev FROM drafts WHERE id = ?", (draft_id,)).fetchone()[0]
+        self._json(200, {"rev": rev})
 
     def _delete(self, path):
         m = DRAFT_PATH.match(path)
