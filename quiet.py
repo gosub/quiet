@@ -25,14 +25,15 @@ ALLOWED_HOSTS = {f"127.0.0.1:{PORT}", f"localhost:{PORT}"}
 TOKEN = secrets.token_urlsafe(32)
 
 PAGE = r"""<!doctype html>
-<html lang="it">
+<html lang="it" data-theme="paper">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="color-scheme" content="light dark">
+<meta name="color-scheme" content="light">
 <title>Quiet — spazio di scrittura</title>
 <style>
   :root {
+    color-scheme: light;
     --bg: #f4f1eb;
     --panel: #fbf9f5;
     --text: #292b2b;
@@ -51,17 +52,18 @@ PAGE = r"""<!doctype html>
     font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     transition: background .25s ease, color .25s ease;
   }
-  body[data-theme="midnight"] {
+  :root[data-theme="midnight"] {
+    color-scheme: dark;
     --bg: #171b20; --panel: #20262d; --text: #e5e3dc; --muted: #929ba4;
     --line: #353d46; --accent: #b7c9dc; --accent-soft: #2c3947; --editor: #20262d;
     --shadow: 0 18px 55px rgba(0, 0, 0, .18);
   }
-  body[data-theme="paper"] {
+  :root[data-theme="paper"] {
     --bg: #e9dfca; --panel: #f6eedc; --text: #40352a; --muted: #6b5d4a;
     --line: #d8c9ae; --accent: #9a6049; --accent-soft: #ead9c8; --editor: #f6eedc;
     --shadow: 0 18px 55px rgba(83, 58, 31, .08);
   }
-  body[data-theme="studio"] {
+  :root[data-theme="studio"] {
     --bg: #e9e9e7; --panel: #f8f8f6; --text: #202322; --muted: #5e635f;
     --line: #d6d9d6; --accent: #476f68; --accent-soft: #dce9e5; --editor: #f8f8f6;
     --shadow: 0 18px 55px rgba(30, 40, 36, .06);
@@ -143,7 +145,7 @@ PAGE = r"""<!doctype html>
   @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; } }
 </style>
 </head>
-<body data-theme="paper">
+<body>
 <div class="shell">
   <header>
     <div class="brand">
@@ -232,9 +234,9 @@ PAGE = r"""<!doctype html>
     try {
       const settings = JSON.parse(localStorage.getItem(SETTINGS_KEY) || "{}");
       if (settings.theme && ["paper", "studio", "midnight"].includes(settings.theme)) $("theme").value = settings.theme;
-      document.body.dataset.theme = $("theme").value;
+      document.documentElement.dataset.theme = $("theme").value;
       focusMode = !!settings.focusMode;
-    } catch (e) { document.body.dataset.theme = "paper"; }
+    } catch (e) { document.documentElement.dataset.theme = "paper"; }
     applyFocusMode();
   }
 
@@ -668,7 +670,7 @@ PAGE = r"""<!doctype html>
   });
   contentInput.addEventListener("input", scheduleSave);
   $("theme").addEventListener("change", () => {
-    document.body.dataset.theme = $("theme").value; persistSettings();
+    document.documentElement.dataset.theme = $("theme").value; persistSettings();
   });
   $("focusToggle").addEventListener("click", () => { focusMode = !focusMode; applyFocusMode(); persistSettings(); });
   $("exportBtn").addEventListener("click", exportMarkdown);
