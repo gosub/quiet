@@ -18,7 +18,7 @@ PAGE = r"""<!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light dark">
-<title>Quiet — writing space</title>
+<title>Quiet — spazio di scrittura</title>
 <style>
   :root {
     --bg: #f4f1eb;
@@ -129,22 +129,22 @@ PAGE = r"""<!doctype html>
   <header>
     <div class="brand">
       <div class="mark">q</div>
-      <div><div class="brand-name">Quiet</div><div class="brand-note">a small place to think on paper</div></div>
+      <div><div class="brand-name">Quiet</div><div class="brand-note">un piccolo posto per pensare su carta</div></div>
     </div>
     <div class="header-actions">
-      <span class="quiet-label">Atmosphere</span>
+      <span class="quiet-label">Atmosfera</span>
       <select id="theme" aria-label="Tema">
-        <option value="paper">Warm paper</option>
-        <option value="studio">Soft studio</option>
-        <option value="midnight">Midnight</option>
+        <option value="paper">Carta calda</option>
+        <option value="studio">Studio chiaro</option>
+        <option value="midnight">Mezzanotte</option>
       </select>
-      <button class="small-btn" id="focusToggle" title="Nascondi la lista degli scritti">Focus mode</button>
+      <button class="small-btn" id="focusToggle" title="Nascondi la lista degli scritti">Modalità focus</button>
     </div>
   </header>
 
   <main class="workspace" id="workspace">
     <aside id="sidebar">
-      <div class="aside-top"><span class="section-label">Your drafts</span><button class="new-btn" id="newDraft" aria-label="Nuovo scritto" title="Nuovo scritto (Alt+N)">+</button></div>
+      <div class="aside-top"><span class="section-label">I tuoi scritti</span><button class="new-btn" id="newDraft" aria-label="Nuovo scritto" title="Nuovo scritto (Alt+N)">+</button></div>
       <div class="draft-list" id="draftList"></div>
       <div class="aside-bottom">Un posto per scrivere.<br>Niente feed, niente distrazioni.</div>
     </aside>
@@ -153,7 +153,7 @@ PAGE = r"""<!doctype html>
       <div class="editor-toolbar">
         <div class="save-state"><span class="save-dot"></span><span id="saveLabel">Salvato in questo browser</span></div>
         <div class="toolbar-right">
-          <button class="text-action" id="exportBtn" title="Esporta il testo in un file Markdown (Ctrl+Shift+E)">Export .md</button>
+          <button class="text-action" id="exportBtn" title="Esporta il testo in un file Markdown (Ctrl+Shift+E)">Esporta .md</button>
           <button class="text-action danger" id="deleteBtn">Elimina</button>
         </div>
       </div>
@@ -320,7 +320,7 @@ PAGE = r"""<!doctype html>
   function applyFocusMode() {
     $("sidebar").hidden = focusMode;
     $("workspace").style.gridTemplateColumns = focusMode ? "minmax(0, 1fr)" : "";
-    $("focusToggle").textContent = focusMode ? "Show drafts" : "Focus mode";
+    $("focusToggle").textContent = focusMode ? "Mostra scritti" : "Modalità focus";
     $("focusToggle").title = focusMode ? "Mostra la lista degli scritti" : "Nascondi la lista degli scritti";
   }
   function exportMarkdown() {
