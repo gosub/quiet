@@ -45,12 +45,12 @@ PAGE = r"""<!doctype html>
     --shadow: 0 18px 55px rgba(0, 0, 0, .18);
   }
   body[data-theme="paper"] {
-    --bg: #e9dfca; --panel: #f6eedc; --text: #40352a; --muted: #8f806b;
+    --bg: #e9dfca; --panel: #f6eedc; --text: #40352a; --muted: #6b5d4a;
     --line: #d8c9ae; --accent: #9a6049; --accent-soft: #ead9c8; --editor: #f6eedc;
     --shadow: 0 18px 55px rgba(83, 58, 31, .08);
   }
   body[data-theme="studio"] {
-    --bg: #e9e9e7; --panel: #f8f8f6; --text: #202322; --muted: #777c79;
+    --bg: #e9e9e7; --panel: #f8f8f6; --text: #202322; --muted: #5e635f;
     --line: #d6d9d6; --accent: #476f68; --accent-soft: #dce9e5; --editor: #f8f8f6;
     --shadow: 0 18px 55px rgba(30, 40, 36, .06);
   }
