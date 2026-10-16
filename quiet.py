@@ -6,6 +6,8 @@ Run:
 Then open http://127.0.0.1:8765 in your browser.
 Drafts are stored in quiet.db (SQLite), next to this script. Drafts left in
 the browser's localStorage by older versions are imported on first load.
+fonts/ holds EB Garamond for the book typography; without it the page falls
+back to Georgia.
 """
 from contextlib import closing
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -21,6 +23,7 @@ import webbrowser
 HOST = "127.0.0.1"
 PORT = 8765
 DB_PATH = Path(__file__).resolve().with_name("quiet.db")
+FONT_DIR = Path(__file__).resolve().with_name("fonts")
 ALLOWED_HOSTS = {f"127.0.0.1:{PORT}", f"localhost:{PORT}"}
 TOKEN = secrets.token_urlsafe(32)
 
@@ -41,6 +44,12 @@ PAGE = r"""<!doctype html>
     --font: Georgia, "Times New Roman", serif;
     --writing-font: var(--font);   /* reading settings override these two */
     --writing-size: 20px;
+  }
+  /* EB Garamond (SIL OFL, fonts/OFL-EBGaramond.txt), served by this script so it works offline. */
+  @font-face {
+    font-family: "EB Garamond";
+    src: url("/fonts/EBGaramond.woff2") format("woff2");
+    font-weight: 400 800; font-style: normal; font-display: block;
   }
   * { box-sizing: border-box; }
   [hidden] { display: none !important; }
@@ -810,6 +819,7 @@ PAGE = r"""<!doctype html>
 
 PAGE_BYTES = PAGE.replace("__QUIET_TOKEN__", TOKEN).encode("utf-8")
 DRAFT_PATH = re.compile(r"^/api/drafts/([A-Za-z0-9-]{1,64})$")
+FONT_PATH = re.compile(r"^/fonts/([A-Za-z0-9-]+\.woff2)$")
 MAX_BODY = 20 * 1024 * 1024
 
 SCHEMA = """
@@ -860,11 +870,11 @@ def draft_row(draft_id, data):
     return (draft_id, title, content, created_at, updated_at, deleted_at, changed_at)
 
 class Handler(BaseHTTPRequestHandler):
-    def _send(self, status, body=b"", content_type="application/json"):
+    def _send(self, status, body=b"", content_type="application/json", cache="no-store"):
         self.send_response(status)
         self.send_header("Content-Type", content_type)
         self.send_header("Content-Length", str(len(body)))
-        self.send_header("Cache-Control", "no-store")
+        self.send_header("Cache-Control", cache)
         self.end_headers()
         self.wfile.write(body)
 
@@ -915,6 +925,9 @@ class Handler(BaseHTTPRequestHandler):
     def _get(self, path):
         if path in ("/", "/index.html"):
             self._send(200, PAGE_BYTES, "text/html; charset=utf-8")
+        elif FONT_PATH.match(path) and (FONT_DIR / FONT_PATH.match(path).group(1)).is_file():
+            font = (FONT_DIR / FONT_PATH.match(path).group(1)).read_bytes()
+            self._send(200, font, "font/woff2", cache="public, max-age=86400")
         elif path == "/api/drafts":
             with closing(connect()) as conn:
                 rows = conn.execute(SELECT_DRAFTS + " ORDER BY updated_at DESC").fetchall()
