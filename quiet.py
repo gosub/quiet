@@ -174,6 +174,9 @@ PAGE = r"""<!doctype html>
     /* Garamond's small x-height reads about a tenth smaller than Georgia at the same size. */
     font-size: calc(var(--writing-size) * 1.1); line-height: 1.6;
     text-align: justify; hyphens: auto; -webkit-hyphens: auto;
+    /* Firefox lets the space at a justified line's end hang past the edge,
+       which showed a horizontal scrollbar; text always wraps, so clip it. */
+    overflow-x: hidden;
     font-variant-numeric: oldstyle-nums proportional-nums; font-kerning: normal;
   }
   .ornament { display: none; text-align: center; color: var(--accent); font-family: "EB Garamond", var(--font); font-size: 24px; line-height: 1; margin: 0 0 30px; user-select: none; }
