@@ -42,9 +42,14 @@ PAGE = r"""<!doctype html>
     --line: #d8c9ae; --accent: #87523e; --accent-soft: #ead9c8; --editor: #f6eedc;
     --shadow: 0 18px 55px rgba(83, 58, 31, .08);
     --font: Georgia, "Times New Roman", serif;
-    --writing-font: var(--font);   /* reading settings override these two */
-    --writing-size: 20px;
+    --font-sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+    --serif-writing: var(--font);  /* the book style swaps in EB Garamond */
+    --writing-font: var(--serif-writing);
+    --writing-size: 20px;          /* set from the reading settings */
   }
+  :root[data-font="sans"] { --writing-font: var(--font-sans); }
+  :root[data-font="mono"] { --writing-font: var(--font-mono); }
   /* EB Garamond (SIL OFL, fonts/OFL-EBGaramond.txt), served by this script so it works offline. */
   @font-face {
     font-family: "EB Garamond";
@@ -88,6 +93,9 @@ PAGE = r"""<!doctype html>
   .segmented label { position: relative; }
   .segmented input { position: absolute; opacity: 0; pointer-events: none; }
   .segmented span { display: block; text-align: center; padding: 6px 0; border-radius: 999px; font-size: 13px; cursor: pointer; }
+  .segmented input[value="serif"] + span { font-family: var(--serif-writing); }
+  .segmented input[value="sans"] + span { font-family: var(--font-sans); }
+  .segmented input[value="mono"] + span { font-family: var(--font-mono); }
   .segmented input:checked + span { background: var(--accent-soft); color: var(--accent); }
   .segmented input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: 1px; }
   .stepper { display: flex; align-items: center; justify-content: space-between; }
@@ -143,6 +151,34 @@ PAGE = r"""<!doctype html>
   .notice.show { opacity: 1; transform: translateX(-50%) translateY(0); }
   .notice.show.actionable { pointer-events: auto; }
   .notice-action { margin-left: 14px; background: none; border: 0; padding: 0; color: inherit; font-size: inherit; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
+  /* Book: Carta calda + Serif, set like an old printed book. EB Garamond with
+     old-style figures, justified and hyphenated text, a centered title in the
+     manner of a chapter opening, a hedera ornament and a faint paper grain. */
+  :root[data-book] {
+    --text: #30261b;
+    --serif-writing: "EB Garamond", var(--font);
+    --paper-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .38 0 0 0 0 .27 0 0 0 0 .14 0 0 0 .07 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
+  }
+  :root[data-book] .editor-card, :root[data-book][data-focus] body { background-image: var(--paper-grain); }
+  :root[data-book] .writing-area { width: min(100%, 700px); }
+  :root[data-book] .date-line {
+    text-align: center; font-family: var(--writing-font); font-size: 15px; letter-spacing: .1em;
+    text-transform: lowercase; font-variant-caps: small-caps; font-variant-numeric: oldstyle-nums; margin-bottom: 18px;
+  }
+  :root[data-book] #title {
+    text-align: center; font-size: clamp(28px, 3.6vw, 38px); letter-spacing: .005em; line-height: 1.2;
+    font-variant-numeric: oldstyle-nums; margin-bottom: 6px;
+  }
+  :root[data-book] .ornament { display: block; }
+  :root[data-book] #content {
+    /* Garamond's small x-height reads about a tenth smaller than Georgia at the same size. */
+    font-size: calc(var(--writing-size) * 1.1); line-height: 1.6;
+    text-align: justify; hyphens: auto; -webkit-hyphens: auto;
+    font-variant-numeric: oldstyle-nums proportional-nums; font-kerning: normal;
+  }
+  .ornament { display: none; text-align: center; color: var(--accent); font-family: "EB Garamond", var(--font); font-size: 24px; line-height: 1; margin: 0 0 30px; user-select: none; }
+  :root[data-focus] .ornament { margin-bottom: 36px; }
+
   /* Focus mode: only the page and the words. */
   :root[data-focus] header, :root[data-focus] aside, :root[data-focus] .editor-toolbar,
   :root[data-focus] .editor-footer, :root[data-focus] .date-line { display: none; }
@@ -232,6 +268,7 @@ PAGE = r"""<!doctype html>
       <div class="writing-area" id="writingArea">
         <div class="date-line" id="dateLine"></div>
         <textarea id="title" rows="1" maxlength="240" placeholder="Dai un titolo al pensiero…" aria-label="Titolo"></textarea>
+        <div class="ornament" aria-hidden="true">❧</div>
         <textarea id="content" placeholder="Comincia da qui. Non serve sapere dove andrai a finire." aria-label="Contenuto"></textarea>
       </div>
       <div class="empty-state" id="emptyState" hidden>
@@ -280,24 +317,22 @@ PAGE = r"""<!doctype html>
   const OUTBOX_KEY = OUTBOX_PREFIX + ":" + uid();
   const wordTotal = (text) => (text.trim().match(/\S+/g) || []).length;
 
-  const FONTS = {
-    serif: 'Georgia, "Times New Roman", serif',
-    sans: 'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-    mono: 'ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace',
-  };
+  const FONTS = ["serif", "sans", "mono"];  // font stacks live in the CSS (--writing-font)
   const DEFAULT_READING = { font: "serif", size: 20 }, MIN_SIZE = 16, MAX_SIZE = 28;
   let reading = { ...DEFAULT_READING };
   function applyReading() {
-    const root = document.documentElement.style;
-    root.setProperty("--writing-font", FONTS[reading.font]);
-    root.setProperty("--writing-size", reading.size + "px");
-    document.querySelectorAll('input[name="font"]').forEach(r => {
-      r.checked = r.value === reading.font;
-      r.nextElementSibling.style.fontFamily = FONTS[r.value];  // each option previews its font
-    });
+    document.documentElement.dataset.font = reading.font;
+    document.documentElement.style.setProperty("--writing-size", reading.size + "px");
+    document.querySelectorAll('input[name="font"]').forEach(r => { r.checked = r.value === reading.font; });
+    applyBook();
     $("sizeValue").textContent = reading.size + " px";
     $("sizeDown").disabled = reading.size <= MIN_SIZE;
     $("sizeUp").disabled = reading.size >= MAX_SIZE;
+  }
+  // The book style belongs to one combination: Carta calda with the serif font.
+  function applyBook() {
+    const root = document.documentElement;
+    root.toggleAttribute("data-book", root.dataset.theme === "paper" && reading.font === "serif");
     fitTitle();
   }
   function setReading(change) { reading = { ...reading, ...change }; applyReading(); persistSettings(); }
@@ -311,7 +346,7 @@ PAGE = r"""<!doctype html>
       if (settings.theme && ["paper", "studio", "midnight"].includes(settings.theme)) $("theme").value = settings.theme;
       document.documentElement.dataset.theme = $("theme").value;
       focusMode = !!settings.focusMode;
-      if (Object.hasOwn(FONTS, settings.font)) reading.font = settings.font;
+      if (FONTS.includes(settings.font)) reading.font = settings.font;
       if (Number.isInteger(settings.size)) reading.size = Math.min(MAX_SIZE, Math.max(MIN_SIZE, settings.size));
     } catch (e) { document.documentElement.dataset.theme = "paper"; }
     applyReading();
@@ -760,7 +795,7 @@ PAGE = r"""<!doctype html>
   });
   contentInput.addEventListener("input", scheduleSave);
   $("theme").addEventListener("change", () => {
-    document.documentElement.dataset.theme = $("theme").value; persistSettings();
+    document.documentElement.dataset.theme = $("theme").value; applyBook(); persistSettings();
   });
   $("readingToggle").addEventListener("click", () => setReadingPanel($("readingPanel").hidden));
   document.addEventListener("click", (e) => {
@@ -800,6 +835,9 @@ PAGE = r"""<!doctype html>
       setView("drafts");
     }
   });
+
+  // Web fonts load lazily and change the title's line breaks once they arrive.
+  if (document.fonts) document.fonts.addEventListener("loadingdone", fitTitle);
 
   // Flush the debounced save before the page goes away.
   window.addEventListener("pagehide", flushOnExit);
