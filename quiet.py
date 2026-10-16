@@ -103,7 +103,7 @@ PAGE = r"""<!doctype html>
   .date-line { color: var(--muted); text-transform: uppercase; letter-spacing: .14em; font-size: 10px; margin-bottom: 28px; }
   #title { width: 100%; border: 0; outline: 0; resize: none; overflow: hidden; background: transparent; color: var(--text); font-family: var(--font); font-size: clamp(29px, 4vw, 43px); font-weight: 400; line-height: 1.15; letter-spacing: -.035em; padding: 0; margin: 0 0 24px; min-height: 52px; }
   #title::placeholder { color: var(--muted); opacity: .58; }
-  #content { width: 100%; flex: 1; min-height: 340px; border: 0; outline: 0; resize: vertical; background: transparent; color: var(--text); font-family: var(--font); font-size: 17px; line-height: 1.85; padding: 0; }
+  #content { width: 100%; flex: 1; min-height: 340px; border: 0; outline: 0; resize: vertical; background: transparent; color: var(--text); font-family: var(--font); font-size: 20px; line-height: 1.75; padding: 0; }
   #content::placeholder { color: var(--muted); opacity: .68; }
   .editor-footer { border-top: 1px solid var(--line); min-height: 43px; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 0 24px; color: var(--muted); font-size: 10px; }
   .footer-hint kbd { font-family: inherit; border: 1px solid var(--line); border-radius: 4px; padding: 2px 5px; margin: 0 2px; }
