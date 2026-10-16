@@ -153,7 +153,7 @@ PAGE = r"""<!doctype html>
       <div class="editor-toolbar">
         <div class="save-state"><span class="save-dot"></span><span id="saveLabel">Salvato in questo browser</span></div>
         <div class="toolbar-right">
-          <button class="text-action" id="exportBtn" title="Esporta il testo in un file Markdown">Export .md</button>
+          <button class="text-action" id="exportBtn" title="Esporta il testo in un file Markdown (Ctrl+Shift+E)">Export .md</button>
           <button class="text-action danger" id="deleteBtn">Elimina</button>
         </div>
       </div>
@@ -167,7 +167,7 @@ PAGE = r"""<!doctype html>
       </div>
       <div class="editor-footer">
         <span id="wordCount">0 parole</span>
-        <span class="footer-hint"><kbd>Ctrl</kbd><kbd>S</kbd> esporta · autosalvataggio attivo</span>
+        <span class="footer-hint"><kbd>Ctrl</kbd><kbd>⇧</kbd><kbd>E</kbd> esporta · autosalvataggio attivo</span>
         <span id="charCount">0 caratteri</span>
       </div>
     </section>
@@ -345,7 +345,10 @@ PAGE = r"""<!doctype html>
   $("exportBtn").addEventListener("click", exportMarkdown);
   $("deleteBtn").addEventListener("click", deleteCurrent);
   document.addEventListener("keydown", (e) => {
-    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
+    if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === "s") {
+      e.preventDefault(); saveCurrent(); showNotice("Salvato");
+    }
+    if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === "e") {
       e.preventDefault(); exportMarkdown();
     }
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "n") {
