@@ -368,6 +368,10 @@ PAGE = r"""<!doctype html>
     }
   });
 
+  // Flush the debounced save before the page goes away.
+  window.addEventListener("pagehide", saveCurrent);
+  document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden") saveCurrent(); });
+
   readStorage();
   renderList();
   if (drafts.length) {
