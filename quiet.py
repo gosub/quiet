@@ -219,6 +219,13 @@ PAGE = r"""<!doctype html>
     localStorage.setItem(SETTINGS_KEY, JSON.stringify({ theme: $("theme").value, focusMode }));
   }
   function makeDraft() {
+    saveCurrent();
+    // Reuse an untouched draft instead of piling up empty "Senza titolo" entries.
+    const blank = drafts.find(d => !d.title.trim() && !d.content.trim());
+    if (blank) {
+      activeId = blank.id; renderList(); showEditor(); titleInput.focus();
+      return;
+    }
     const d = { id: uid(), title: "", content: "", createdAt: now(), updatedAt: now() };
     drafts.unshift(d); activeId = d.id; persist(); renderList(); showEditor(); titleInput.focus();
   }
