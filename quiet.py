@@ -216,7 +216,9 @@ PAGE = r"""<!doctype html>
     }
   }
   function persistSettings() {
-    localStorage.setItem(SETTINGS_KEY, JSON.stringify({ theme: $("theme").value, focusMode }));
+    try {
+      localStorage.setItem(SETTINGS_KEY, JSON.stringify({ theme: $("theme").value, focusMode }));
+    } catch (e) { /* settings are a convenience; the change still applies to this session */ }
   }
   function makeDraft() {
     saveCurrent();
