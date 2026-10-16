@@ -205,6 +205,7 @@ PAGE = r"""<!doctype html>
     return new Intl.DateTimeFormat("it-IT", { day: "numeric", month: "long", year: "numeric" }).format(d);
   };
   const activeDraft = () => drafts.find(d => d.id === activeId);
+  const newDraft = () => { const t = now(); return { id: uid(), title: "", content: "", createdAt: t, updatedAt: t, changedAt: t, deletedAt: null }; };
   const wordTotal = (text) => (text.trim().match(/\S+/g) || []).length;
 
   function readSettings() {
@@ -245,7 +246,10 @@ PAGE = r"""<!doctype html>
   }
   function send(id, entry, keepalive) {
     const path = "/api/drafts/" + encodeURIComponent(id);
-    return entry.op === "delete" ? api("DELETE", path, undefined, keepalive) : api("PUT", path, entry.draft, keepalive);
+    if (entry.op === "delete") return api("DELETE", path, undefined, keepalive);
+    // Outbox entries saved before the trash existed lack changedAt/deletedAt.
+    const d = entry.draft;
+    return api("PUT", path, { ...d, changedAt: d.changedAt || d.updatedAt, deletedAt: d.deletedAt || null }, keepalive);
   }
   function queuePut(d) { outbox[d.id] = { op: "put", draft: { ...d } }; writeOutbox(); flush(); }
   function queueDelete(id) { outbox[id] = { op: "delete" }; writeOutbox(); flush(); }
@@ -298,7 +302,7 @@ PAGE = r"""<!doctype html>
     const rows = legacy.filter(d => d && typeof d.id === "string").map(d => ({
       id: d.id, title: String(d.title || ""), content: String(d.content || ""),
       createdAt: d.createdAt || d.updatedAt || now(), updatedAt: d.updatedAt || d.createdAt || now(),
-    }));
+    })).map(d => ({ ...d, changedAt: d.updatedAt, deletedAt: null }));
     try {
       const res = await api("POST", "/api/import", rows);
       localStorage.setItem(LEGACY_KEY + "-migrated", raw);  // keep a copy, just in case
@@ -317,7 +321,7 @@ PAGE = r"""<!doctype html>
       const i = drafts.findIndex(d => d.id === id);
       if (entry.op === "delete") { if (i >= 0) drafts.splice(i, 1); }
       else if (i < 0) drafts.push(entry.draft);
-      else if (entry.draft.updatedAt >= drafts[i].updatedAt) drafts[i] = entry.draft;
+      else if ((entry.draft.changedAt || entry.draft.updatedAt) >= (drafts[i].changedAt || drafts[i].updatedAt)) drafts[i] = entry.draft;
     }
     if (drafts.length) {
       activeId = [...drafts].sort((a,b) => (b.updatedAt || "").localeCompare(a.updatedAt || ""))[0].id;
@@ -339,7 +343,7 @@ PAGE = r"""<!doctype html>
       activeId = blank.id; renderList(); showEditor(); titleInput.focus();
       return;
     }
-    const d = { id: uid(), title: "", content: "", createdAt: now(), updatedAt: now() };
+    const d = newDraft();
     drafts.unshift(d); activeId = d.id; queuePut(d); renderList(); showEditor(); titleInput.focus();
   }
   function saveCurrent() {
@@ -352,7 +356,7 @@ PAGE = r"""<!doctype html>
     }
     d.title = titleInput.value;
     d.content = contentInput.value;
-    d.updatedAt = now();
+    d.updatedAt = d.changedAt = now();
     queuePut(d);
     renderList();
     updateCounts();
@@ -362,7 +366,7 @@ PAGE = r"""<!doctype html>
   function scheduleSave() {
     if (!activeDraft()) {
       // Never let typed text exist without a draft to hold it.
-      const d = { id: uid(), title: "", content: "", createdAt: now(), updatedAt: now() };
+      const d = newDraft();
       drafts.unshift(d); activeId = d.id; showEditorChrome();
     }
     clearTimeout(saveTimer);
@@ -513,7 +517,9 @@ CREATE TABLE IF NOT EXISTS drafts (
     title      TEXT NOT NULL DEFAULT '',
     content    TEXT NOT NULL DEFAULT '',
     created_at TEXT NOT NULL,
-    updated_at TEXT NOT NULL
+    updated_at TEXT NOT NULL,           -- last edit of title/content, shown to the user
+    deleted_at TEXT,                    -- set while the draft is in the trash
+    changed_at TEXT                     -- last change of any kind; orders concurrent writes
 )
 """
 
@@ -523,20 +529,29 @@ def connect():
     return conn
 
 def init_db():
-    with closing(connect()) as conn:
+    with closing(connect()) as conn, conn:
         conn.execute(SCHEMA)
-        conn.commit()
+        columns = {r["name"] for r in conn.execute("PRAGMA table_info(drafts)")}
+        # Databases created before the trash existed lack these columns.
+        for column in ("deleted_at", "changed_at"):
+            if column not in columns:
+                conn.execute(f"ALTER TABLE drafts ADD COLUMN {column} TEXT")
+        conn.execute("UPDATE drafts SET changed_at = updated_at WHERE changed_at IS NULL")
 
 def draft_row(draft_id, data):
     """Validate a draft payload and return it as a row tuple."""
     if not isinstance(data, dict):
         raise ValueError("draft must be an object")
-    fields = [data.get(k) for k in ("title", "content", "createdAt", "updatedAt")]
+    fields = [data.get(k) for k in ("title", "content", "createdAt", "updatedAt", "changedAt")]
     if not all(isinstance(v, str) for v in fields):
-        raise ValueError("title, content, createdAt and updatedAt must be strings")
+        raise ValueError("title, content, createdAt, updatedAt and changedAt must be strings")
+    deleted_at = data.get("deletedAt")
+    if deleted_at is not None and not isinstance(deleted_at, str):
+        raise ValueError("deletedAt must be a string or null")
     if not DRAFT_PATH.match("/api/drafts/" + draft_id):
         raise ValueError("invalid id")
-    return (draft_id, *fields)
+    title, content, created_at, updated_at, changed_at = fields
+    return (draft_id, title, content, created_at, updated_at, deleted_at, changed_at)
 
 class Handler(BaseHTTPRequestHandler):
     def _send(self, status, body=b"", content_type="application/json"):
@@ -597,7 +612,8 @@ class Handler(BaseHTTPRequestHandler):
         elif path == "/api/drafts":
             with closing(connect()) as conn:
                 rows = conn.execute(
-                    "SELECT id, title, content, created_at AS createdAt, updated_at AS updatedAt"
+                    "SELECT id, title, content, created_at AS createdAt, updated_at AS updatedAt,"
+                    " deleted_at AS deletedAt, changed_at AS changedAt"
                     " FROM drafts ORDER BY updated_at DESC").fetchall()
             self._json(200, [dict(r) for r in rows])
         else:
@@ -612,9 +628,12 @@ class Handler(BaseHTTPRequestHandler):
             # Ignore writes older than what is stored, so out-of-order requests
             # (or a stale second tab) can't roll a draft back.
             conn.execute(
-                "INSERT INTO drafts (id, title, content, created_at, updated_at) VALUES (?, ?, ?, ?, ?)"
+                "INSERT INTO drafts (id, title, content, created_at, updated_at, deleted_at, changed_at)"
+                " VALUES (?, ?, ?, ?, ?, ?, ?)"
                 " ON CONFLICT(id) DO UPDATE SET title = excluded.title, content = excluded.content,"
-                " updated_at = excluded.updated_at WHERE excluded.updated_at >= drafts.updated_at",
+                " updated_at = excluded.updated_at, deleted_at = excluded.deleted_at,"
+                " changed_at = excluded.changed_at"
+                " WHERE excluded.changed_at >= COALESCE(drafts.changed_at, drafts.updated_at)",
                 row)
         self._send(204)
 
@@ -636,8 +655,8 @@ class Handler(BaseHTTPRequestHandler):
         with closing(connect()) as conn, conn:
             before = conn.total_changes
             conn.executemany(
-                "INSERT INTO drafts (id, title, content, created_at, updated_at) VALUES (?, ?, ?, ?, ?)"
-                " ON CONFLICT(id) DO NOTHING", rows)
+                "INSERT INTO drafts (id, title, content, created_at, updated_at, deleted_at, changed_at)"
+                " VALUES (?, ?, ?, ?, ?, ?, ?) ON CONFLICT(id) DO NOTHING", rows)
             imported = conn.total_changes - before
         self._json(200, {"imported": imported})
 
