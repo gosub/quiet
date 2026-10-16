@@ -60,7 +60,7 @@ PAGE = r"""<!doctype html>
   }
   :root[data-theme="paper"] {
     --bg: #e9dfca; --panel: #f6eedc; --text: #40352a; --muted: #6b5d4a;
-    --line: #d8c9ae; --accent: #9a6049; --accent-soft: #ead9c8; --editor: #f6eedc;
+    --line: #d8c9ae; --accent: #87523e; --accent-soft: #ead9c8; --editor: #f6eedc;
     --shadow: 0 18px 55px rgba(83, 58, 31, .08);
   }
   :root[data-theme="studio"] {
