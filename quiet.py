@@ -93,6 +93,8 @@ PAGE = r"""<!doctype html>
   .draft-title { display: block; font-family: var(--font); font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 5px; }
   .draft-meta { display: block; font-size: 10px; color: var(--muted); }
   .empty-list { color: var(--muted); font-size: 12px; line-height: 1.6; padding: 12px 2px; }
+  .trash-toggle { align-self: flex-start; margin-top: 12px; background: none; border: 0; padding: 6px 2px; color: var(--muted); font-size: 11px; letter-spacing: .04em; }
+  .trash-toggle:hover { color: var(--text); }
   .aside-bottom { margin-top: auto; padding-top: 18px; color: var(--muted); font-size: 11px; line-height: 1.6; }
   .editor-card { background: var(--editor); border: 1px solid var(--line); border-radius: 15px; box-shadow: var(--shadow); min-height: 620px; display: flex; flex-direction: column; overflow: hidden; }
   .editor-toolbar { min-height: 48px; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 0 24px; border-bottom: 1px solid var(--line); }
@@ -118,6 +120,8 @@ PAGE = r"""<!doctype html>
   .primary-btn:hover { opacity: .88; }
   .notice { position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%) translateY(12px); opacity: 0; pointer-events: none; background: var(--text); color: var(--bg); border-radius: 8px; padding: 10px 14px; font-size: 12px; transition: .2s; }
   .notice.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .notice.show.actionable { pointer-events: auto; }
+  .notice-action { margin-left: 14px; background: none; border: 0; padding: 0; color: inherit; font-size: inherit; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
   @media (max-width: 720px) {
     .shell { padding: 17px 13px 18px; }
     header { padding-bottom: 17px; }
@@ -156,8 +160,9 @@ PAGE = r"""<!doctype html>
 
   <main class="workspace" id="workspace">
     <aside id="sidebar">
-      <div class="aside-top"><span class="section-label">I tuoi scritti</span><button class="new-btn" id="newDraft" aria-label="Nuovo scritto" title="Nuovo scritto (Alt+N)">+</button></div>
+      <div class="aside-top"><span class="section-label" id="listLabel">I tuoi scritti</span><button class="new-btn" id="newDraft" aria-label="Nuovo scritto" title="Nuovo scritto (Alt+N)">+</button><button class="text-action danger" id="emptyTrash" title="Elimina definitivamente tutti gli scritti nel cestino" hidden>Svuota</button></div>
       <div class="draft-list" id="draftList"></div>
+      <button class="trash-toggle" id="trashToggle" type="button">Cestino</button>
       <div class="aside-bottom">Un posto per scrivere.<br>Niente feed, niente distrazioni.</div>
     </aside>
 
@@ -166,7 +171,9 @@ PAGE = r"""<!doctype html>
         <div class="save-state"><span class="save-dot"></span><span id="saveLabel">Caricamento…</span></div>
         <div class="toolbar-right">
           <button class="text-action" id="exportBtn" title="Esporta il testo in un file Markdown (Ctrl+Shift+E)">Esporta .md</button>
-          <button class="text-action danger" id="deleteBtn">Elimina</button>
+          <button class="text-action" id="restoreBtn" hidden>Ripristina</button>
+          <button class="text-action danger" id="purgeBtn" hidden>Elimina definitivamente</button>
+          <button class="text-action danger" id="deleteBtn">Sposta nel cestino</button>
         </div>
       </div>
       <div class="writing-area" id="writingArea">
@@ -194,7 +201,7 @@ PAGE = r"""<!doctype html>
   const TOKEN = "__QUIET_TOKEN__";
   const $ = (id) => document.getElementById(id);
   const titleInput = $("title"), contentInput = $("content");
-  let drafts = [], activeId = null, saveTimer = null, noticeTimer = null, focusMode = false;
+  let drafts = [], activeId = null, saveTimer = null, noticeTimer = null, focusMode = false, view = "drafts";
   let outbox = {}, flushing = false, flushAgain = false, retryTimer = null, saveError = null, lastSavedAt = null, firstPendingAt = 0;
 
   const uid = () => (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : String(Date.now()) + Math.random().toString(16).slice(2);
@@ -205,6 +212,12 @@ PAGE = r"""<!doctype html>
     return new Intl.DateTimeFormat("it-IT", { day: "numeric", month: "long", year: "numeric" }).format(d);
   };
   const activeDraft = () => drafts.find(d => d.id === activeId);
+  const live = () => drafts.filter(d => !d.deletedAt);
+  const trashed = () => drafts.filter(d => d.deletedAt);
+  const byUpdated = (a, b) => (b.updatedAt || "").localeCompare(a.updatedAt || "");
+  const byDeleted = (a, b) => (b.deletedAt || "").localeCompare(a.deletedAt || "");
+  const latestLiveId = () => (live().sort(byUpdated)[0] || {}).id || null;
+  const titleOf = (d) => d.title.trim() || "Senza titolo";
   const newDraft = () => { const t = now(); return { id: uid(), title: "", content: "", createdAt: t, updatedAt: t, changedAt: t, deletedAt: null }; };
   const wordTotal = (text) => (text.trim().match(/\S+/g) || []).length;
 
@@ -323,9 +336,7 @@ PAGE = r"""<!doctype html>
       else if (i < 0) drafts.push(entry.draft);
       else if ((entry.draft.changedAt || entry.draft.updatedAt) >= (drafts[i].changedAt || drafts[i].updatedAt)) drafts[i] = entry.draft;
     }
-    if (drafts.length) {
-      activeId = [...drafts].sort((a,b) => (b.updatedAt || "").localeCompare(a.updatedAt || ""))[0].id;
-    }
+    activeId = latestLiveId();
     renderList();
     showEditor();
     if (Object.keys(outbox).length && !saveError) flush();
@@ -337,8 +348,9 @@ PAGE = r"""<!doctype html>
   }
   function makeDraft() {
     saveCurrent();
+    view = "drafts";
     // Reuse an untouched draft instead of piling up empty "Senza titolo" entries.
-    const blank = drafts.find(d => !d.title.trim() && !d.content.trim());
+    const blank = live().find(d => !d.title.trim() && !d.content.trim());
     if (blank) {
       activeId = blank.id; renderList(); showEditor(); titleInput.focus();
       return;
@@ -364,6 +376,7 @@ PAGE = r"""<!doctype html>
   // Autosave: 180ms after typing pauses, and at least every 2s during
   // continuous typing so a long uninterrupted burst is never all at risk.
   function scheduleSave() {
+    if (activeDraft() && activeDraft().deletedAt) return;  // trashed drafts are read-only
     if (!activeDraft()) {
       // Never let typed text exist without a draft to hold it.
       const d = newDraft();
@@ -378,20 +391,28 @@ PAGE = r"""<!doctype html>
   function renderList() {
     const list = $("draftList");
     list.replaceChildren();
-    const sorted = [...drafts].sort((a,b) => (b.updatedAt || "").localeCompare(a.updatedAt || ""));
-    if (!sorted.length) {
+    const inTrash = view === "trash";
+    const items = inTrash ? trashed().sort(byDeleted) : live().sort(byUpdated);
+    const trashCount = trashed().length;
+    $("listLabel").textContent = inTrash ? "Cestino" : "I tuoi scritti";
+    $("newDraft").hidden = inTrash;
+    $("emptyTrash").hidden = !inTrash || !items.length;
+    $("trashToggle").textContent = inTrash ? "← Torna agli scritti" : "Cestino" + (trashCount ? " · " + trashCount : "");
+    if (!items.length) {
       const empty = document.createElement("div");
       empty.className = "empty-list";
-      empty.textContent = "I tuoi scritti appariranno qui.";
+      empty.textContent = inTrash ? "Il cestino è vuoto." : "I tuoi scritti appariranno qui.";
       list.appendChild(empty);
       return;
     }
-    sorted.forEach(d => {
+    items.forEach(d => {
       const b = document.createElement("button");
       b.className = "draft-item" + (d.id === activeId ? " active" : "");
       b.type = "button";
-      const t = document.createElement("span"); t.className = "draft-title"; t.textContent = d.title.trim() || "Senza titolo";
-      const m = document.createElement("span"); m.className = "draft-meta"; m.textContent = formatDate(d.updatedAt || d.createdAt);
+      if (d.id === activeId) b.setAttribute("aria-current", "true");
+      const t = document.createElement("span"); t.className = "draft-title"; t.textContent = titleOf(d);
+      const m = document.createElement("span"); m.className = "draft-meta";
+      m.textContent = inTrash ? "Eliminato il " + formatDate(d.deletedAt) : formatDate(d.updatedAt || d.createdAt);
       b.append(t, m);
       b.addEventListener("click", () => {
         if (d.id === activeId) return;
@@ -401,11 +422,13 @@ PAGE = r"""<!doctype html>
     });
   }
   function showEditorChrome() {
-    const empty = !activeDraft();
+    const d = activeDraft(), empty = !d, inTrash = !!(d && d.deletedAt);
     $("emptyState").hidden = !empty;
     $("writingArea").hidden = empty;
-    $("deleteBtn").style.visibility = empty ? "hidden" : "visible";
     $("exportBtn").style.visibility = empty ? "hidden" : "visible";
+    $("deleteBtn").hidden = empty || inTrash;
+    $("restoreBtn").hidden = $("purgeBtn").hidden = !inTrash;
+    titleInput.readOnly = contentInput.readOnly = inTrash;
   }
   function showEditor() {
     const d = activeDraft();
@@ -414,7 +437,9 @@ PAGE = r"""<!doctype html>
       titleInput.value = d.title || "";
       contentInput.value = d.content || "";
       fitTitle();
-      $("dateLine").textContent = "Iniziato il " + formatDate(d.createdAt || d.updatedAt);
+      $("dateLine").textContent = d.deletedAt
+        ? "Nel cestino dal " + formatDate(d.deletedAt) + " · sola lettura"
+        : "Iniziato il " + formatDate(d.createdAt || d.updatedAt);
       refreshSaveLabel();
       updateCounts();
     } else {
@@ -431,9 +456,18 @@ PAGE = r"""<!doctype html>
     $("wordCount").textContent = words + (words === 1 ? " parola" : " parole");
     $("charCount").textContent = text.length + (text.length === 1 ? " carattere" : " caratteri");
   }
-  function showNotice(message) {
-    const el = $("notice"); el.textContent = message; el.classList.add("show");
-    clearTimeout(noticeTimer); noticeTimer = setTimeout(() => el.classList.remove("show"), 2200);
+  function showNotice(message, action) {
+    const el = $("notice");
+    el.replaceChildren(document.createTextNode(message));
+    if (action) {
+      const b = document.createElement("button");
+      b.type = "button"; b.className = "notice-action"; b.textContent = action.label;
+      b.addEventListener("click", () => { el.classList.remove("show"); action.run(); });
+      el.append(b);
+    }
+    el.classList.toggle("actionable", !!action);
+    el.classList.add("show");
+    clearTimeout(noticeTimer); noticeTimer = setTimeout(() => el.classList.remove("show"), action ? 6000 : 2200);
   }
   function applyFocusMode() {
     $("sidebar").hidden = focusMode;
@@ -454,14 +488,55 @@ PAGE = r"""<!doctype html>
     URL.revokeObjectURL(url);
     showNotice("File Markdown esportato");
   }
-  function deleteCurrent() {
-    const d = activeDraft(); if (!d) return;
-    if (!confirm('Eliminare "' + (d.title.trim() || "Senza titolo") + '"? Questa azione non si può annullare.')) return;
-    clearTimeout(saveTimer); saveTimer = null; firstPendingAt = 0;
-    drafts = drafts.filter(item => item.id !== d.id);
-    activeId = drafts.length ? [...drafts].sort((a,b) => (b.updatedAt || "").localeCompare(a.updatedAt || ""))[0].id : null;
-    queueDelete(d.id); renderList(); showEditor();
-    showNotice("Scritto eliminato");
+  // Trash: deleting only sets deletedAt. Trashed drafts stay in the database,
+  // read-only, until restored or deleted for good from the trash view.
+  function trashCurrent() {
+    const d = activeDraft(); if (!d || d.deletedAt) return;
+    saveCurrent();
+    d.deletedAt = d.changedAt = now();
+    queuePut(d);
+    activeId = latestLiveId();
+    renderList(); showEditor();
+    showNotice("Spostato nel cestino", { label: "Annulla", run: () => restoreDraft(d.id) });
+  }
+  function restoreDraft(id) {
+    const d = drafts.find(x => x.id === id); if (!d || !d.deletedAt) return;
+    saveCurrent();
+    d.deletedAt = null; d.changedAt = now();
+    queuePut(d);
+    view = "drafts"; activeId = d.id;
+    renderList(); showEditor();
+    showNotice("Ripristinato");
+  }
+  function purgeCurrent() {
+    const d = activeDraft(); if (!d || !d.deletedAt) return;
+    if (!confirm('Eliminare definitivamente "' + titleOf(d) + '"? Questa azione non si può annullare.')) return;
+    drafts = drafts.filter(x => x.id !== d.id);
+    queueDelete(d.id);
+    activeId = (view === "trash" && trashed().sort(byDeleted)[0] || {}).id || latestLiveId();
+    renderList(); showEditor();
+    showNotice("Eliminato definitivamente");
+  }
+  function emptyTrash() {
+    const items = trashed(); if (!items.length) return;
+    const what = items.length === 1 ? "lo scritto" : "i " + items.length + " scritti";
+    if (!confirm("Eliminare definitivamente " + what + " nel cestino? Questa azione non si può annullare.")) return;
+    drafts = live();
+    items.forEach(d => queueDelete(d.id));
+    if (!activeDraft()) activeId = latestLiveId();
+    renderList(); showEditor();
+    showNotice("Cestino svuotato");
+  }
+  function setView(next) {
+    saveCurrent();
+    view = next;
+    if (next === "trash") {
+      const first = trashed().sort(byDeleted)[0];
+      if (first) activeId = first.id;
+    } else if (activeDraft() && activeDraft().deletedAt) {
+      activeId = latestLiveId();
+    }
+    renderList(); showEditor();
   }
 
   $("newDraft").addEventListener("click", makeDraft);
@@ -480,7 +555,11 @@ PAGE = r"""<!doctype html>
   });
   $("focusToggle").addEventListener("click", () => { focusMode = !focusMode; applyFocusMode(); persistSettings(); });
   $("exportBtn").addEventListener("click", exportMarkdown);
-  $("deleteBtn").addEventListener("click", deleteCurrent);
+  $("deleteBtn").addEventListener("click", trashCurrent);
+  $("restoreBtn").addEventListener("click", () => restoreDraft(activeId));
+  $("purgeBtn").addEventListener("click", purgeCurrent);
+  $("emptyTrash").addEventListener("click", emptyTrash);
+  $("trashToggle").addEventListener("click", () => setView(view === "trash" ? "drafts" : "trash"));
   document.addEventListener("keydown", (e) => {
     if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === "s") {
       e.preventDefault(); saveCurrent(); if (!saveError) showNotice("Salvato");
@@ -493,6 +572,8 @@ PAGE = r"""<!doctype html>
     }
     if (e.key === "Escape" && focusMode) {
       focusMode = false; applyFocusMode(); persistSettings();
+    } else if (e.key === "Escape" && view === "trash") {
+      setView("drafts");
     }
   });
 
