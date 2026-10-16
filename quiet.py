@@ -32,17 +32,12 @@ PAGE = r"""<!doctype html>
 <meta name="color-scheme" content="light">
 <title>Quiet — spazio di scrittura</title>
 <style>
+  /* Carta calda is the default theme; the others override these tokens. */
   :root {
     color-scheme: light;
-    --bg: #f4f1eb;
-    --panel: #fbf9f5;
-    --text: #292b2b;
-    --muted: #85837d;
-    --line: #ded9cf;
-    --accent: #6c7564;
-    --accent-soft: #e6e9e0;
-    --editor: #fbf9f5;
-    --shadow: 0 18px 55px rgba(54, 48, 37, .07);
+    --bg: #e9dfca; --panel: #f6eedc; --text: #40352a; --muted: #6b5d4a;
+    --line: #d8c9ae; --accent: #87523e; --accent-soft: #ead9c8; --editor: #f6eedc;
+    --shadow: 0 18px 55px rgba(83, 58, 31, .08);
     --font: Georgia, "Times New Roman", serif;
   }
   * { box-sizing: border-box; }
@@ -57,11 +52,6 @@ PAGE = r"""<!doctype html>
     --bg: #171b20; --panel: #20262d; --text: #e5e3dc; --muted: #929ba4;
     --line: #353d46; --accent: #b7c9dc; --accent-soft: #2c3947; --editor: #20262d;
     --shadow: 0 18px 55px rgba(0, 0, 0, .18);
-  }
-  :root[data-theme="paper"] {
-    --bg: #e9dfca; --panel: #f6eedc; --text: #40352a; --muted: #6b5d4a;
-    --line: #d8c9ae; --accent: #87523e; --accent-soft: #ead9c8; --editor: #f6eedc;
-    --shadow: 0 18px 55px rgba(83, 58, 31, .08);
   }
   :root[data-theme="studio"] {
     --bg: #e9e9e7; --panel: #f8f8f6; --text: #202322; --muted: #5e635f;
