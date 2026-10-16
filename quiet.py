@@ -68,6 +68,9 @@ PAGE = r"""<!doctype html>
   }
   button, input, textarea, select { font: inherit; }
   button { cursor: pointer; }
+  /* Keyboard focus ring. The writing fields skip it: the caret shows where you are. */
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .notice :focus-visible { outline-color: var(--bg); }
   .shell { max-width: 1120px; margin: 0 auto; padding: 24px 30px 30px; min-height: 100vh; display: flex; flex-direction: column; }
   header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 4px 0 24px; }
   .brand { display: flex; align-items: center; gap: 11px; }
@@ -78,7 +81,7 @@ PAGE = r"""<!doctype html>
   .quiet-label { color: var(--muted); font-size: 11px; letter-spacing: .12em; text-transform: uppercase; }
   select, .small-btn {
     border: 1px solid var(--line); border-radius: 999px; color: var(--text); background: var(--panel);
-    padding: 9px 13px; font-size: 12px; outline: none;
+    padding: 9px 13px; font-size: 12px;
   }
   .small-btn:hover, select:hover { border-color: var(--accent); }
   .workspace { flex: 1; display: grid; grid-template-columns: 205px minmax(0, 1fr); gap: 25px; min-height: 600px; }
