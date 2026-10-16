@@ -300,8 +300,10 @@ PAGE = r"""<!doctype html>
   async function flush() {
     if (flushing) { flushAgain = true; return; }
     flushing = true; clearTimeout(retryTimer);
+    let wrote = false;
     try {
       for (const [id, entry] of Object.entries(outbox)) {
+        wrote = true;
         let res;
         try { res = await send(id, entry, false); }
         catch (e) {
@@ -315,6 +317,7 @@ PAGE = r"""<!doctype html>
         if (entry.op === "put") acknowledge(id, res.rev);
       }
       writeOutbox();
+      if (wrote && channel) channel.postMessage("changed");
       if (saveError) showNotice("Salvataggio ripristinato");
       saveError = null; lastSavedAt = new Date();
     } catch (e) {
@@ -379,6 +382,33 @@ PAGE = r"""<!doctype html>
       label.title = lastSavedAt ? "Salvato in quiet.db alle " + lastSavedAt.toLocaleTimeString("it-IT") : "Salvato in quiet.db";
     }
   }
+  // --- Sync with other windows ----------------------------------------------
+  // Windows in this browser ping each other after every save; windows in
+  // other browsers catch up when focused and every 15s while visible.
+  // Drafts with edits still pending here are left alone: if another window
+  // changed them too, the revision check settles it when they are sent.
+  const channel = "BroadcastChannel" in window ? new BroadcastChannel("quiet-drafts") : null;
+  let refreshTimer = null, loaded = false;
+  function scheduleRefresh(delay) { clearTimeout(refreshTimer); refreshTimer = setTimeout(refreshFromServer, delay); }
+  async function refreshFromServer() {
+    if (!loaded) return;
+    let server;
+    try { server = (await api("GET", "/api/drafts")).map(fromServer); } catch (e) { return; }
+    const busy = (id) => !!outbox[id] || (id === activeId && !!saveTimer);
+    const ids = new Set(server.map(d => d.id));
+    let activeChanged = false;
+    for (const d of server) {
+      if (busy(d.id)) continue;
+      const i = drafts.findIndex(x => x.id === d.id);
+      if (i < 0) drafts.push(d);
+      else if ((d.rev || 0) > (drafts[i].rev || 0)) { drafts[i] = d; if (d.id === activeId) activeChanged = true; }
+    }
+    // Drafts deleted for good in another window, unless edits for them are pending here.
+    drafts = drafts.filter(d => ids.has(d.id) || busy(d.id));
+    if (!activeDraft()) { activeId = latestLiveId(); activeChanged = true; }
+    renderList();
+    if (activeChanged) showEditor();
+  }
   async function migrateLegacy() {
     let raw, legacy;
     try { raw = localStorage.getItem(LEGACY_KEY); } catch (e) { return; }
@@ -414,6 +444,7 @@ PAGE = r"""<!doctype html>
     renderList();
     showEditor();
     if (Object.keys(outbox).length && !saveError) flush();
+    loaded = true;
   }
   function persistSettings() {
     try {
@@ -662,7 +693,12 @@ PAGE = r"""<!doctype html>
 
   // Flush the debounced save before the page goes away.
   window.addEventListener("pagehide", flushOnExit);
-  document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden") flushOnExit(); });
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "hidden") flushOnExit(); else scheduleRefresh(0);
+  });
+  window.addEventListener("focus", () => scheduleRefresh(0));
+  if (channel) channel.onmessage = () => scheduleRefresh(100);
+  setInterval(() => { if (document.visibilityState === "visible") refreshFromServer(); }, 15000);
 
   load();
 })();
