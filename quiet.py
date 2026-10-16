@@ -39,6 +39,8 @@ PAGE = r"""<!doctype html>
     --line: #d8c9ae; --accent: #87523e; --accent-soft: #ead9c8; --editor: #f6eedc;
     --shadow: 0 18px 55px rgba(83, 58, 31, .08);
     --font: Georgia, "Times New Roman", serif;
+    --writing-font: var(--font);   /* reading settings override these two */
+    --writing-size: 20px;
   }
   * { box-sizing: border-box; }
   [hidden] { display: none !important; }
@@ -69,11 +71,26 @@ PAGE = r"""<!doctype html>
   .mark { width: 30px; height: 30px; border: 1px solid var(--accent); border-radius: 50%; display: grid; place-items: center; color: var(--accent); font-family: var(--font); font-size: 19px; }
   .brand-name { font-size: 13px; font-weight: 750; letter-spacing: .16em; text-transform: uppercase; }
   .brand-note { color: var(--muted); font-size: 11px; margin-top: 3px; letter-spacing: .04em; }
-  .header-actions { display: flex; align-items: center; gap: 9px; }
+  .header-actions { position: relative; display: flex; align-items: center; gap: 9px; }
+  .reading-panel { position: absolute; top: calc(100% + 8px); right: 0; z-index: 10; width: 236px; max-width: calc(100vw - 26px); padding: 14px; display: flex; flex-direction: column; gap: 8px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow); }
+  .panel-label { color: var(--muted); text-transform: uppercase; font-size: 10px; letter-spacing: .16em; font-weight: 700; }
+  .segmented, .stepper { border: 1px solid var(--line); border-radius: 999px; padding: 3px; margin-bottom: 6px; }
+  .segmented { display: grid; grid-template-columns: repeat(3, 1fr); }
+  .segmented label { position: relative; }
+  .segmented input { position: absolute; opacity: 0; pointer-events: none; }
+  .segmented span { display: block; text-align: center; padding: 6px 0; border-radius: 999px; font-size: 13px; cursor: pointer; }
+  .segmented input:checked + span { background: var(--accent-soft); color: var(--accent); }
+  .segmented input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .stepper { display: flex; align-items: center; justify-content: space-between; }
+  .stepper button { border: 0; background: none; color: var(--text); padding: 6px 12px; border-radius: 999px; font-size: 13px; }
+  .stepper button:hover:not(:disabled) { background: var(--accent-soft); }
+  .stepper button:disabled { color: var(--muted); opacity: .5; cursor: default; }
+  .stepper output { font-size: 13px; font-variant-numeric: tabular-nums; }
+  .reading-panel .text-action { align-self: flex-start; }
   .quiet-label { color: var(--muted); font-size: 11px; letter-spacing: .12em; text-transform: uppercase; }
   select, .small-btn {
     border: 1px solid var(--line); border-radius: 999px; color: var(--text); background: var(--panel);
-    padding: 9px 13px; font-size: 12px;
+    padding: 9px 13px; font-size: 12px; white-space: nowrap;
   }
   .small-btn:hover, select:hover { border-color: var(--accent); }
   .workspace { flex: 1; display: grid; grid-template-columns: 205px minmax(0, 1fr); gap: 25px; min-height: 600px; }
@@ -101,9 +118,9 @@ PAGE = r"""<!doctype html>
   .text-action.danger:hover { color: #c45b50; }
   .writing-area { width: min(100%, 760px); margin: 0 auto; padding: 52px clamp(25px, 7vw, 82px) 34px; flex: 1; display: flex; flex-direction: column; }
   .date-line { color: var(--muted); text-transform: uppercase; letter-spacing: .14em; font-size: 10px; margin-bottom: 28px; }
-  #title { width: 100%; border: 0; outline: 0; resize: none; overflow: hidden; background: transparent; color: var(--text); font-family: var(--font); font-size: clamp(29px, 4vw, 43px); font-weight: 400; line-height: 1.15; letter-spacing: -.035em; padding: 0; margin: 0 0 24px; min-height: 52px; }
+  #title { width: 100%; border: 0; outline: 0; resize: none; overflow: hidden; background: transparent; color: var(--text); font-family: var(--writing-font); font-size: clamp(29px, 4vw, 43px); font-weight: 400; line-height: 1.15; letter-spacing: -.035em; padding: 0; margin: 0 0 24px; min-height: 52px; }
   #title::placeholder { color: var(--muted); opacity: .58; }
-  #content { width: 100%; flex: 1; min-height: 340px; border: 0; outline: 0; resize: vertical; background: transparent; color: var(--text); font-family: var(--font); font-size: 20px; line-height: 1.75; padding: 0; }
+  #content { width: 100%; flex: 1; min-height: 340px; border: 0; outline: 0; resize: vertical; background: transparent; color: var(--text); font-family: var(--writing-font); font-size: var(--writing-size); line-height: 1.75; padding: 0; }
   #content::placeholder { color: var(--muted); opacity: .68; }
   .editor-footer { border-top: 1px solid var(--line); min-height: 43px; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 0 24px; color: var(--muted); font-size: 10px; }
   .footer-hint kbd { font-family: inherit; border: 1px solid var(--line); border-radius: 4px; padding: 2px 5px; margin: 0 2px; }
@@ -120,7 +137,8 @@ PAGE = r"""<!doctype html>
   @media (max-width: 720px) {
     .shell { padding: 17px 13px 18px; }
     header { padding-bottom: 17px; }
-    .brand-note, .quiet-label { display: none; }
+    .brand-note, .brand-name, .quiet-label { display: none; }
+    .header-actions { flex-wrap: wrap; justify-content: flex-end; row-gap: 6px; }
     .workspace { grid-template-columns: 1fr; gap: 12px; min-height: 0; }
     aside { order: 2; }
     .draft-list { flex-direction: row; max-height: none; overflow-x: auto; padding-bottom: 5px; }
@@ -149,7 +167,23 @@ PAGE = r"""<!doctype html>
         <option value="studio">Studio chiaro</option>
         <option value="midnight">Mezzanotte</option>
       </select>
+      <button class="small-btn" id="readingToggle" aria-label="Impostazioni di lettura" title="Impostazioni di lettura" aria-expanded="false" aria-controls="readingPanel">Aa</button>
       <button class="small-btn" id="focusToggle" title="Nascondi la lista degli scritti">Modalità focus</button>
+      <div class="reading-panel" id="readingPanel" role="group" aria-label="Impostazioni di lettura" hidden>
+        <div class="panel-label" id="fontLabel">Carattere</div>
+        <div class="segmented" role="radiogroup" aria-labelledby="fontLabel">
+          <label><input type="radio" name="font" value="serif"><span>Serif</span></label>
+          <label><input type="radio" name="font" value="sans"><span>Sans</span></label>
+          <label><input type="radio" name="font" value="mono"><span>Mono</span></label>
+        </div>
+        <div class="panel-label">Dimensione</div>
+        <div class="stepper">
+          <button type="button" id="sizeDown" aria-label="Riduci il testo">A−</button>
+          <output id="sizeValue" aria-live="polite"></output>
+          <button type="button" id="sizeUp" aria-label="Ingrandisci il testo">A+</button>
+        </div>
+        <button type="button" class="text-action" id="readingReset">Ripristina predefiniti</button>
+      </div>
     </div>
   </header>
 
@@ -220,13 +254,41 @@ PAGE = r"""<!doctype html>
   const OUTBOX_KEY = OUTBOX_PREFIX + ":" + uid();
   const wordTotal = (text) => (text.trim().match(/\S+/g) || []).length;
 
+  const FONTS = {
+    serif: 'Georgia, "Times New Roman", serif',
+    sans: 'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+    mono: 'ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace',
+  };
+  const DEFAULT_READING = { font: "serif", size: 20 }, MIN_SIZE = 16, MAX_SIZE = 28;
+  let reading = { ...DEFAULT_READING };
+  function applyReading() {
+    const root = document.documentElement.style;
+    root.setProperty("--writing-font", FONTS[reading.font]);
+    root.setProperty("--writing-size", reading.size + "px");
+    document.querySelectorAll('input[name="font"]').forEach(r => {
+      r.checked = r.value === reading.font;
+      r.nextElementSibling.style.fontFamily = FONTS[r.value];  // each option previews its font
+    });
+    $("sizeValue").textContent = reading.size + " px";
+    $("sizeDown").disabled = reading.size <= MIN_SIZE;
+    $("sizeUp").disabled = reading.size >= MAX_SIZE;
+    fitTitle();
+  }
+  function setReading(change) { reading = { ...reading, ...change }; applyReading(); persistSettings(); }
+  function setReadingPanel(open) {
+    $("readingPanel").hidden = !open;
+    $("readingToggle").setAttribute("aria-expanded", String(open));
+  }
   function readSettings() {
     try {
       const settings = JSON.parse(localStorage.getItem(SETTINGS_KEY) || "{}");
       if (settings.theme && ["paper", "studio", "midnight"].includes(settings.theme)) $("theme").value = settings.theme;
       document.documentElement.dataset.theme = $("theme").value;
       focusMode = !!settings.focusMode;
+      if (Object.hasOwn(FONTS, settings.font)) reading.font = settings.font;
+      if (Number.isInteger(settings.size)) reading.size = Math.min(MAX_SIZE, Math.max(MIN_SIZE, settings.size));
     } catch (e) { document.documentElement.dataset.theme = "paper"; }
+    applyReading();
     applyFocusMode();
   }
 
@@ -443,7 +505,7 @@ PAGE = r"""<!doctype html>
   }
   function persistSettings() {
     try {
-      localStorage.setItem(SETTINGS_KEY, JSON.stringify({ theme: $("theme").value, focusMode }));
+      localStorage.setItem(SETTINGS_KEY, JSON.stringify({ theme: $("theme").value, focusMode, font: reading.font, size: reading.size }));
     } catch (e) { /* settings are a convenience; the change still applies to this session */ }
   }
   function makeDraft() {
@@ -662,6 +724,14 @@ PAGE = r"""<!doctype html>
   $("theme").addEventListener("change", () => {
     document.documentElement.dataset.theme = $("theme").value; persistSettings();
   });
+  $("readingToggle").addEventListener("click", () => setReadingPanel($("readingPanel").hidden));
+  document.addEventListener("click", (e) => {
+    if (!$("readingPanel").hidden && !e.target.closest("#readingPanel, #readingToggle")) setReadingPanel(false);
+  });
+  document.querySelectorAll('input[name="font"]').forEach(r => r.addEventListener("change", () => setReading({ font: r.value })));
+  $("sizeDown").addEventListener("click", () => setReading({ size: Math.max(MIN_SIZE, reading.size - 1) }));
+  $("sizeUp").addEventListener("click", () => setReading({ size: Math.min(MAX_SIZE, reading.size + 1) }));
+  $("readingReset").addEventListener("click", () => setReading(DEFAULT_READING));
   $("focusToggle").addEventListener("click", () => { focusMode = !focusMode; applyFocusMode(); persistSettings(); });
   $("exportBtn").addEventListener("click", exportMarkdown);
   $("deleteBtn").addEventListener("click", trashCurrent);
@@ -670,6 +740,9 @@ PAGE = r"""<!doctype html>
   $("emptyTrash").addEventListener("click", emptyTrash);
   $("trashToggle").addEventListener("click", () => setView(view === "trash" ? "drafts" : "trash"));
   document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && !$("readingPanel").hidden) {
+      setReadingPanel(false); $("readingToggle").focus(); return;
+    }
     if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === "s") {
       e.preventDefault(); saveCurrent(); if (!saveError) showNotice("Salvato");
     }
