@@ -144,7 +144,7 @@ PAGE = r"""<!doctype html>
 
   <main class="workspace" id="workspace">
     <aside id="sidebar">
-      <div class="aside-top"><span class="section-label">Your drafts</span><button class="new-btn" id="newDraft" aria-label="Nuovo scritto" title="Nuovo scritto">+</button></div>
+      <div class="aside-top"><span class="section-label">Your drafts</span><button class="new-btn" id="newDraft" aria-label="Nuovo scritto" title="Nuovo scritto (Alt+N)">+</button></div>
       <div class="draft-list" id="draftList"></div>
       <div class="aside-bottom">Un posto per scrivere.<br>Niente feed, niente distrazioni.</div>
     </aside>
@@ -360,7 +360,7 @@ PAGE = r"""<!doctype html>
     if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === "e") {
       e.preventDefault(); exportMarkdown();
     }
-    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "n") {
+    if (e.altKey && !e.ctrlKey && !e.metaKey && e.code === "KeyN") {
       e.preventDefault(); makeDraft();
     }
     if (e.key === "Escape" && focusMode) {
