@@ -134,6 +134,21 @@ PAGE = r"""<!doctype html>
   .notice.show { opacity: 1; transform: translateX(-50%) translateY(0); }
   .notice.show.actionable { pointer-events: auto; }
   .notice-action { margin-left: 14px; background: none; border: 0; padding: 0; color: inherit; font-size: inherit; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
+  /* Focus mode: only the page and the words. */
+  :root[data-focus] header, :root[data-focus] aside, :root[data-focus] .editor-toolbar,
+  :root[data-focus] .editor-footer, :root[data-focus] .date-line { display: none; }
+  :root[data-focus] body { background: var(--editor); }
+  :root[data-focus] .workspace { grid-template-columns: minmax(0, 1fr); }
+  :root[data-focus] .editor-card { background: transparent; border-color: transparent; box-shadow: none; }
+  :root[data-focus] .writing-area { padding-top: 12vh; }
+  :root[data-focus] #content { resize: none; }
+  .focus-exit, .focus-alert { position: fixed; z-index: 5; display: none; }
+  .focus-exit { top: 18px; right: 22px; opacity: 0; transition: opacity .4s ease; }
+  :root[data-focus] .focus-exit { display: block; }
+  :root[data-focus].show-chrome .focus-exit, .focus-exit:focus-visible { opacity: 1; }
+  .focus-alert { bottom: 18px; left: 22px; color: var(--muted); font-size: 11px; }
+  :root[data-focus][data-unsaved] .focus-alert { display: block; }
+  @media (hover: none) { :root[data-focus] .focus-exit { opacity: .55; } }
   @media (max-width: 720px) {
     .shell { padding: 17px 13px 18px; }
     header { padding-bottom: 17px; }
@@ -168,7 +183,7 @@ PAGE = r"""<!doctype html>
         <option value="midnight">Mezzanotte</option>
       </select>
       <button class="small-btn" id="readingToggle" aria-label="Impostazioni di lettura" title="Impostazioni di lettura" aria-expanded="false" aria-controls="readingPanel">Aa</button>
-      <button class="small-btn" id="focusToggle" title="Nascondi la lista degli scritti">Modalità focus</button>
+      <button class="small-btn" id="focusToggle" title="Solo il foglio e le parole (Ctrl+Shift+F)">Modalità focus</button>
       <div class="reading-panel" id="readingPanel" role="group" aria-label="Impostazioni di lettura" hidden>
         <div class="panel-label" id="fontLabel">Carattere</div>
         <div class="segmented" role="radiogroup" aria-labelledby="fontLabel">
@@ -221,6 +236,8 @@ PAGE = r"""<!doctype html>
     </section>
   </main>
 </div>
+<button class="small-btn focus-exit" id="focusExit" type="button">Esci dal focus · Esc</button>
+<div class="focus-alert" id="focusAlert">Non salvato: le modifiche sono conservate in questo browser</div>
 <div class="notice" id="notice" role="status"></div>
 <script>
 (() => {
@@ -432,6 +449,7 @@ PAGE = r"""<!doctype html>
   }
   function refreshSaveLabel() {
     const label = $("saveLabel");
+    document.documentElement.toggleAttribute("data-unsaved", !!saveError);
     if (saveError) { label.textContent = "Non salvato"; label.title = "Le modifiche sono conservate in questo browser"; }
     else if (Object.keys(outbox).length || saveTimer) { label.textContent = "Salvataggio…"; label.title = ""; }
     else {
@@ -641,11 +659,22 @@ PAGE = r"""<!doctype html>
     clearTimeout(noticeTimer); noticeTimer = setTimeout(() => el.classList.remove("show"), action ? 6000 : 2200);
   }
   function applyFocusMode() {
-    $("sidebar").hidden = focusMode;
-    $("workspace").style.gridTemplateColumns = focusMode ? "minmax(0, 1fr)" : "";
-    $("focusToggle").textContent = focusMode ? "Mostra scritti" : "Modalità focus";
-    $("focusToggle").title = focusMode ? "Mostra la lista degli scritti" : "Nascondi la lista degli scritti";
+    document.documentElement.toggleAttribute("data-focus", focusMode);
+    if (focusMode) setReadingPanel(false);
   }
+  function setFocusMode(on) {
+    focusMode = on; applyFocusMode(); persistSettings();
+    if (!activeDraft()) return;
+    contentInput.focus();
+  }
+  // In focus mode the exit button shows only while the mouse moves.
+  let chromeTimer = null;
+  document.addEventListener("mousemove", () => {
+    if (!focusMode) return;
+    document.documentElement.classList.add("show-chrome");
+    clearTimeout(chromeTimer);
+    chromeTimer = setTimeout(() => document.documentElement.classList.remove("show-chrome"), 1800);
+  });
   function exportMarkdown() {
     saveCurrent();
     const d = activeDraft(); if (!d) return;
@@ -732,7 +761,8 @@ PAGE = r"""<!doctype html>
   $("sizeDown").addEventListener("click", () => setReading({ size: Math.max(MIN_SIZE, reading.size - 1) }));
   $("sizeUp").addEventListener("click", () => setReading({ size: Math.min(MAX_SIZE, reading.size + 1) }));
   $("readingReset").addEventListener("click", () => setReading(DEFAULT_READING));
-  $("focusToggle").addEventListener("click", () => { focusMode = !focusMode; applyFocusMode(); persistSettings(); });
+  $("focusToggle").addEventListener("click", () => setFocusMode(true));
+  $("focusExit").addEventListener("click", () => setFocusMode(false));
   $("exportBtn").addEventListener("click", exportMarkdown);
   $("deleteBtn").addEventListener("click", trashCurrent);
   $("restoreBtn").addEventListener("click", () => restoreDraft(activeId));
@@ -752,8 +782,11 @@ PAGE = r"""<!doctype html>
     if (e.altKey && !e.ctrlKey && !e.metaKey && e.code === "KeyN") {
       e.preventDefault(); makeDraft();
     }
+    if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === "f") {
+      e.preventDefault(); setFocusMode(!focusMode);
+    }
     if (e.key === "Escape" && focusMode) {
-      focusMode = false; applyFocusMode(); persistSettings();
+      setFocusMode(false);
     } else if (e.key === "Escape" && view === "trash") {
       setView("drafts");
     }
