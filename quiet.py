@@ -33,6 +33,7 @@ PAGE = r"""<!doctype html>
     --font: Georgia, "Times New Roman", serif;
   }
   * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
   body {
     margin: 0; min-height: 100vh; background: var(--bg); color: var(--text);
     font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -232,6 +233,11 @@ PAGE = r"""<!doctype html>
     updateCounts();
   }
   function scheduleSave() {
+    if (!activeDraft()) {
+      // Never let typed text exist without a draft to hold it.
+      const d = { id: uid(), title: "", content: "", createdAt: now(), updatedAt: now() };
+      drafts.unshift(d); activeId = d.id; showEditorChrome();
+    }
     $("saveLabel").textContent = "Salvataggio…";
     clearTimeout(saveTimer);
     saveTimer = setTimeout(saveCurrent, 180);
@@ -262,13 +268,16 @@ PAGE = r"""<!doctype html>
       list.appendChild(b);
     });
   }
-  function showEditor() {
-    const d = activeDraft();
-    const empty = !d;
+  function showEditorChrome() {
+    const empty = !activeDraft();
     $("emptyState").hidden = !empty;
     $("writingArea").hidden = empty;
     $("deleteBtn").style.visibility = empty ? "hidden" : "visible";
     $("exportBtn").style.visibility = empty ? "hidden" : "visible";
+  }
+  function showEditor() {
+    const d = activeDraft();
+    showEditorChrome();
     if (d) {
       titleInput.value = d.title || "";
       contentInput.value = d.content || "";
