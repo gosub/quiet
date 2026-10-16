@@ -286,6 +286,7 @@ PAGE = r"""<!doctype html>
     if (d) {
       titleInput.value = d.title || "";
       contentInput.value = d.content || "";
+      fitTitle();
       $("dateLine").textContent = "Iniziato il " + formatDate(d.createdAt || d.updatedAt);
       $("saveLabel").textContent = "Salvato in questo browser";
       updateCounts();
@@ -293,6 +294,9 @@ PAGE = r"""<!doctype html>
       titleInput.value = ""; contentInput.value = "";
       $("wordCount").textContent = "0 parole"; $("charCount").textContent = "0 caratteri";
     }
+  }
+  function fitTitle() {
+    titleInput.style.height = "auto"; titleInput.style.height = titleInput.scrollHeight + "px";
   }
   function updateCounts() {
     const text = contentInput.value;
@@ -313,7 +317,8 @@ PAGE = r"""<!doctype html>
   function exportMarkdown() {
     saveCurrent();
     const d = activeDraft(); if (!d) return;
-    const markdown = (d.title.trim() ? "# " + d.title.trim() + "\n\n" : "") + d.content;
+    const title = d.title.replace(/\s+/g, " ").trim();
+    const markdown = (title ? "# " + title + "\n\n" : "") + d.content;
     const blob = new Blob([markdown], { type: "text/markdown;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -333,8 +338,12 @@ PAGE = r"""<!doctype html>
 
   $("newDraft").addEventListener("click", makeDraft);
   $("firstDraft").addEventListener("click", makeDraft);
+  titleInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") { e.preventDefault(); contentInput.focus(); }
+  });
   titleInput.addEventListener("input", () => {
-    titleInput.style.height = "auto"; titleInput.style.height = titleInput.scrollHeight + "px";
+    if (/[\r\n]/.test(titleInput.value)) titleInput.value = titleInput.value.replace(/\s*[\r\n]+\s*/g, " ");
+    fitTitle();
     scheduleSave();
   });
   contentInput.addEventListener("input", scheduleSave);
