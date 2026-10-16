@@ -133,11 +133,18 @@ PAGE = r"""<!doctype html>
   .text-action { background: none; border: 0; color: var(--muted); font-size: 11px; padding: 7px 0; }
   .text-action:hover { color: var(--text); }
   .text-action.danger:hover { color: #c45b50; }
-  .writing-area { width: min(100%, 760px); margin: 0 auto; padding: 52px clamp(25px, 7vw, 82px) 34px; flex: 1; display: flex; flex-direction: column; }
-  .date-line { color: var(--muted); text-transform: uppercase; letter-spacing: .14em; font-size: 10px; margin-bottom: 28px; }
-  #title { width: 100%; border: 0; outline: 0; resize: none; overflow: hidden; background: transparent; color: var(--text); font-family: var(--writing-font); font-size: clamp(29px, 4vw, 43px); font-weight: 400; line-height: 1.15; letter-spacing: -.035em; padding: 0; margin: 0 0 24px; min-height: 52px; }
+  /* The fields span the whole card and center the text with inner padding,
+     so the body's scrollbar sits at the card's edge rather than against the
+     text. --gutter keeps the column at --measure wide, with a minimum margin. */
+  .writing-area {
+    --measure: 596px; --gutter-min: clamp(25px, 7vw, 82px);
+    --gutter: max(var(--gutter-min), calc((100% - var(--measure)) / 2));
+    width: 100%; padding: 52px 0 34px; flex: 1; display: flex; flex-direction: column;
+  }
+  .date-line { color: var(--muted); text-transform: uppercase; letter-spacing: .14em; font-size: 10px; margin-bottom: 28px; padding: 0 var(--gutter); }
+  #title { width: 100%; border: 0; outline: 0; resize: none; overflow: hidden; background: transparent; color: var(--text); font-family: var(--writing-font); font-size: clamp(29px, 4vw, 43px); font-weight: 400; line-height: 1.15; letter-spacing: -.035em; padding: 0 var(--gutter); margin: 0 0 24px; min-height: 52px; }
   #title::placeholder { color: var(--muted); opacity: .58; }
-  #content { width: 100%; flex: 1; min-height: 340px; border: 0; outline: 0; resize: vertical; background: transparent; color: var(--text); font-family: var(--writing-font); font-size: var(--writing-size); line-height: 1.75; padding: 0; }
+  #content { width: 100%; flex: 1; min-height: 340px; border: 0; outline: 0; resize: vertical; background: transparent; color: var(--text); font-family: var(--writing-font); font-size: var(--writing-size); line-height: 1.75; padding: 0 var(--gutter); }
   #content::placeholder { color: var(--muted); opacity: .68; }
   .editor-footer { border-top: 1px solid var(--line); min-height: 43px; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 0 24px; color: var(--muted); font-size: 10px; }
   .footer-hint kbd { font-family: inherit; border: 1px solid var(--line); border-radius: 4px; padding: 2px 5px; margin: 0 2px; }
@@ -160,7 +167,7 @@ PAGE = r"""<!doctype html>
     --paper-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .38 0 0 0 0 .27 0 0 0 0 .14 0 0 0 .07 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
   }
   :root[data-book] .editor-card, :root[data-book][data-focus] body { background-image: var(--paper-grain); }
-  :root[data-book] .writing-area { width: min(100%, 700px); }
+  :root[data-book] .writing-area { --measure: 536px; }
   :root[data-book] .date-line {
     text-align: center; font-family: var(--writing-font); font-size: 15px; letter-spacing: .1em;
     text-transform: lowercase; font-variant-caps: small-caps; font-variant-numeric: oldstyle-nums; margin-bottom: 18px;
@@ -179,7 +186,7 @@ PAGE = r"""<!doctype html>
     overflow-x: hidden;
     font-variant-numeric: oldstyle-nums proportional-nums; font-kerning: normal;
   }
-  .ornament { display: none; text-align: center; color: var(--accent); font-family: "EB Garamond", var(--font); font-size: 24px; line-height: 1; margin: 0 0 30px; user-select: none; }
+  .ornament { display: none; text-align: center; color: var(--accent); font-family: "EB Garamond", var(--font); font-size: 24px; line-height: 1; margin: 0 0 30px; padding: 0 var(--gutter); user-select: none; }
   :root[data-focus] .ornament { margin-bottom: 36px; }
 
   /* Focus mode: only the page and the words. */
@@ -189,6 +196,7 @@ PAGE = r"""<!doctype html>
   :root[data-focus] .workspace { grid-template-columns: minmax(0, 1fr); }
   :root[data-focus] .editor-card { background: transparent; border-color: transparent; box-shadow: none; }
   :root[data-focus] .writing-area { padding-top: 12vh; }
+  :root[data-focus] .shell { max-width: none; padding: 0; }  /* scrollbar at the window's edge */
   :root[data-focus] #content { resize: none; }
   .focus-exit, .focus-alert { position: fixed; z-index: 5; display: none; }
   .focus-exit { top: 18px; right: 22px; opacity: 0; transition: opacity .4s ease; }
@@ -208,7 +216,7 @@ PAGE = r"""<!doctype html>
     .draft-item { min-width: 145px; border-color: var(--line); background: var(--panel); }
     .aside-bottom { display: none; }
     .editor-card { min-height: 68vh; }
-    .writing-area { padding: 35px 24px 26px; }
+    .writing-area { padding: 35px 0 26px; --gutter-min: 24px; }
     .editor-toolbar { padding: 0 15px; }
     .editor-footer { padding: 0 15px; }
     .footer-hint { display: none; }
