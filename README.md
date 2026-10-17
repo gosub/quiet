@@ -1,0 +1,113 @@
+# Quiet
+
+Un piccolo posto per scrivere, senza distrazioni. Quiet è un'app di scrittura locale: un solo script Python, senza dipendenze, che apre nel browser un foglio su cui scrivere. Gli scritti restano sul tuo computer, in un database SQLite accanto allo script.
+
+## Requisiti
+
+- Python 3.7 o successivo, con SQLite 3.24 o successivo (quello incluso in qualsiasi installazione recente)
+- Un browser moderno (Firefox, Chrome, Edge, Safari)
+
+Non serve installare nient'altro.
+
+## Avvio
+
+```sh
+python3 quiet.py
+```
+
+Il server parte su <http://127.0.0.1:8765> e apre il browser. Per fermarlo, premi `Ctrl+C` nel terminale.
+
+Puoi tenere aperte più finestre o schede contemporaneamente (vedi [Più finestre aperte](#più-finestre-aperte)). Non puoi invece avviare due server insieme: il secondo trova la porta già occupata e termina con un errore (`Address already in use`).
+
+## Dove sono i dati
+
+| Cosa | Dove |
+| --- | --- |
+| Scritti (anche quelli nel cestino) | `quiet.db`, accanto a `quiet.py` |
+| Tema, modalità focus, carattere e dimensione del testo | `localStorage` del browser |
+| Modifiche non ancora confermate dal server | `localStorage` del browser, finché il server non le salva |
+
+`quiet.db` è escluso da git (`.gitignore`), perché contiene i tuoi testi.
+
+**Backup.** Il modo più sicuro è copiare il database con SQLite, anche a server avviato:
+
+```sh
+sqlite3 quiet.db ".backup quiet-backup.db"
+```
+
+In alternativa, ferma il server e copia `quiet.db`. Per riprendere da un backup, sostituisci `quiet.db` a server fermo.
+
+**Aggiornamenti.** Quando una nuova versione di Quiet cambia la struttura del database, `quiet.db` viene aggiornato da solo all'avvio, senza perdere dati. Dopo un aggiornamento, riavvia il server e ricarica tutte le finestre aperte.
+
+**Versioni precedenti.** Le prime versioni salvavano gli scritti solo nel browser. Al primo avvio vengono importati automaticamente nel database, e una copia resta nel browser sotto la chiave `quiet-writing-drafts-v1-migrated`.
+
+## Come si usa
+
+### Scrivere
+
+- **Salvataggio automatico:** ogni modifica viene salvata poco dopo che smetti di scrivere, e comunque almeno ogni 2 secondi se scrivi senza pause. L'etichetta in alto a sinistra mostra *Salvataggio…*, *Salvato* o *Non salvato*.
+- **Nuovo scritto:** il pulsante **+** o `Alt+N`. Se esiste già uno scritto vuoto, si apre quello invece di crearne un altro.
+- **Esportare:** **Esporta .md** o `Ctrl+Shift+E` scarica lo scritto in Markdown. Il titolo diventa l'intestazione `# Titolo`, quindi per capitoli e sottocapitoli usa `##` e `###`.
+
+### Cestino
+
+**Sposta nel cestino** non chiede conferma: per qualche secondo compare un avviso con **Annulla**. Il link **Cestino** sotto la lista mostra gli scritti eliminati. Da lì puoi aprirli in sola lettura, **Ripristinarli** o **Eliminarli definitivamente**, e **Svuota** li elimina tutti. Solo queste ultime due azioni sono irreversibili e chiedono conferma. Il cestino non si svuota mai da solo.
+
+### Aspetto
+
+- **Atmosfera:** tre temi, *Carta calda*, *Studio chiaro* e *Mezzanotte*.
+- **Aa:** carattere del testo (Serif, Sans, Mono) e dimensione (da 16 a 28 px, predefinita 20).
+- **Stile libro:** con *Carta calda* e *Serif* la pagina imita un libro stampato. Usa EB Garamond, numeri all'antica, testo giustificato e sillabato, titolo centrato e un ornamento sotto il titolo.
+
+### Modalità focus
+
+**Modalità focus** o `Ctrl+Shift+F` lascia solo il foglio e il testo. Per uscire usa `Esc`, oppure il pulsante che compare quando muovi il mouse. Se il salvataggio non riesce, un piccolo avviso compare in basso a sinistra.
+
+### Scorciatoie da tastiera
+
+Su macOS `Cmd` funziona al posto di `Ctrl`.
+
+| Tasti | Azione |
+| --- | --- |
+| `Ctrl+S` | Salva subito (non serve: il salvataggio è automatico) |
+| `Ctrl+Shift+E` | Esporta lo scritto in Markdown |
+| `Alt+N` | Nuovo scritto |
+| `Ctrl+Shift+F` | Entra o esce dalla modalità focus |
+| `Invio` nel titolo | Passa al testo |
+| `Esc` | Chiude il pannello **Aa**, poi esce dalla modalità focus, poi torna dal cestino agli scritti |
+
+## Più finestre aperte
+
+Puoi scrivere in più finestre o schede, anche in browser diversi:
+
+- **Sincronizzazione:** le modifiche fatte in una finestra compaiono nelle altre. Tra schede dello stesso browser l'aggiornamento è quasi immediato; un altro browser si aggiorna quando torna in primo piano, e comunque ogni 15 secondi.
+- **Conflitti:** se due finestre modificano lo stesso scritto quasi nello stesso momento, nessuna sovrascrive l'altra. Lo scritto conserva la versione salvata per prima, e le modifiche dell'altra finestra diventano una copia intitolata *"Titolo (versione in conflitto)"*. Le due versioni si uniscono a mano.
+
+## Se il server non risponde
+
+Se il server viene fermato mentre scrivi, l'etichetta diventa *Non salvato* e le modifiche restano conservate nel browser. Quiet riprova ogni 5 secondi e le salva appena il server torna. Se il server è stato riavviato, ricarica la pagina: le modifiche in sospeso vengono salvate al caricamento, anche se la finestra che le conteneva è stata chiusa.
+
+## Sicurezza
+
+Il server risponde solo su `127.0.0.1` e non è raggiungibile da altri dispositivi della rete. L'API accetta richieste solo con l'header `Host` di `127.0.0.1` o `localhost`, e con un token casuale generato a ogni avvio. In questo modo una pagina web aperta nello stesso browser non può leggere o modificare gli scritti.
+
+## Configurazione
+
+Non ci sono opzioni da riga di comando. Per cambiare la porta, modifica `PORT` in cima a `quiet.py`. Gli scritti non ne risentono, perché stanno nel database. Tema e impostazioni di lettura invece sono legati all'indirizzo, quindi con la nuova porta ripartono dai valori predefiniti.
+
+## Struttura del progetto
+
+```
+quiet.py                   server, API, database e pagina (HTML, CSS e JavaScript inclusi)
+fonts/EBGaramond.woff2     carattere dello stile libro, servito in locale
+fonts/OFL-EBGaramond.txt   licenza del carattere
+quiet.db                   database degli scritti, creato al primo avvio
+```
+
+## Crediti
+
+Il carattere [EB Garamond](https://github.com/octaviopardo/EBGaramond12) è di Georg Duffner e Octavio Pardo, distribuito con la SIL Open Font License 1.1 (`fonts/OFL-EBGaramond.txt`). La versione inclusa è ridotta all'alfabeto latino e a pochi ornamenti, ma conserva tutte le funzioni OpenType.
+
+## Autore
+
+Giampaolo Guiducci
