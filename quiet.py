@@ -1,4 +1,13 @@
 #!/usr/bin/env python3
+# Quiet, a small local writing app.
+# Copyright (C) 2026 Giampaolo Guiducci
+#
+# This program is free software: you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by the Free
+# Software Foundation, either version 3 of the License, or (at your option)
+# any later version. See the LICENSE file for details.
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
 """A tiny, dependency-free local writing app.
 
 Run:

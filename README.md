@@ -98,6 +98,7 @@ Non ci sono opzioni da riga di comando. Per cambiare la porta, modifica `PORT` i
 ## Struttura del progetto
 
 ```
+LICENSE                    testo della GNU GPL v3
 quiet.py                   server, API, database e pagina (HTML, CSS e JavaScript inclusi)
 fonts/EBGaramond.woff2     carattere dello stile libro, servito in locale
 fonts/OFL-EBGaramond.txt   licenza del carattere
@@ -111,3 +112,9 @@ Il carattere [EB Garamond](https://github.com/octaviopardo/EBGaramond12) è di G
 ## Autore
 
 Giampaolo Guiducci
+
+## Licenza
+
+Quiet è software libero, distribuito con la [GNU General Public License versione 3](LICENSE) o, a tua scelta, qualsiasi versione successiva (GPL-3.0-or-later). Puoi usarlo, studiarlo, modificarlo e ridistribuirlo; se ne distribuisci una versione modificata, anche quella deve restare sotto GPL e includere il codice sorgente.
+
+Il carattere in `fonts/` non è coperto dalla GPL: mantiene la propria licenza, la SIL Open Font License 1.1 (vedi [Crediti](#crediti)).
