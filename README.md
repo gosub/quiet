@@ -2,6 +2,8 @@
 
 A small place to write, without distractions. Quiet is a local writing app: a single executable with no dependencies that opens a page to write on in your browser. Your writing stays on your computer, in an SQLite database.
 
+![The first canto of Dante's Inferno in Quiet's focus mode, with the Warm paper theme and the book style](docs/focus-mode.png)
+
 ## Download
 
 Executables for Linux, macOS and Windows are on the [releases page](https://github.com/gosub/quiet/releases/latest). All you need besides is a modern browser (Firefox, Chrome, Edge, Safari).
@@ -129,6 +131,7 @@ index.html                 the page (HTML, CSS and JavaScript)
 fonts/EBGaramond.woff2     font for the book style, served locally
 fonts/OFL-EBGaramond.txt   the font's license
 .github/workflows/         builds the executables for every vX.Y.Z tag
+docs/focus-mode.png        the screenshot above
 ```
 
 The page and the font are embedded in the executable at build time.
