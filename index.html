@@ -1,12 +1,12 @@
 <!doctype html>
-<html lang="it" data-theme="paper">
+<html lang="en" data-theme="paper">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light">
-<title>Quiet — spazio di scrittura</title>
+<title>Quiet · a place to write</title>
 <style>
-  /* Carta calda is the default theme; the others override these tokens. */
+  /* Warm paper is the default theme; the others override these tokens. */
   :root {
     color-scheme: light;
     --bg: #e9dfca; --panel: #f6eedc; --text: #40352a; --muted: #6b5d4a;
@@ -129,7 +129,7 @@
   .notice.show { opacity: 1; transform: translateX(-50%) translateY(0); }
   .notice.show.actionable { pointer-events: auto; }
   .notice-action { margin-left: 14px; background: none; border: 0; padding: 0; color: inherit; font-size: inherit; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
-  /* Book: Carta calda + Serif, set like an old printed book. EB Garamond with
+  /* Book: Warm paper + Serif, set like an old printed book. EB Garamond with
      old-style figures, justified and hyphenated text, a centered title in the
      manner of a chapter opening, a hedera ornament and a faint paper grain. */
   :root[data-book] {
@@ -200,78 +200,78 @@
   <header>
     <div class="brand">
       <div class="mark">q</div>
-      <div><div class="brand-name">Quiet</div><div class="brand-note">un piccolo posto per pensare su carta</div></div>
+      <div><div class="brand-name">Quiet</div><div class="brand-note">a small place to think on paper</div></div>
     </div>
     <div class="header-actions">
-      <span class="quiet-label">Atmosfera</span>
-      <select id="theme" aria-label="Tema">
-        <option value="paper">Carta calda</option>
-        <option value="studio">Studio chiaro</option>
-        <option value="midnight">Mezzanotte</option>
+      <span class="quiet-label">Mood</span>
+      <select id="theme" aria-label="Theme">
+        <option value="paper">Warm paper</option>
+        <option value="studio">Light studio</option>
+        <option value="midnight">Midnight</option>
       </select>
-      <button class="small-btn" id="readingToggle" aria-label="Impostazioni di lettura" title="Impostazioni di lettura" aria-expanded="false" aria-controls="readingPanel">Aa</button>
-      <button class="small-btn" id="focusToggle" title="Solo il foglio e le parole (Ctrl+Shift+F)">Modalità focus</button>
-      <div class="reading-panel" id="readingPanel" role="group" aria-label="Impostazioni di lettura" hidden>
-        <div class="panel-label" id="fontLabel">Carattere</div>
+      <button class="small-btn" id="readingToggle" aria-label="Reading settings" title="Reading settings" aria-expanded="false" aria-controls="readingPanel">Aa</button>
+      <button class="small-btn" id="focusToggle" title="Just the page and the words (Ctrl+Shift+F)">Focus mode</button>
+      <div class="reading-panel" id="readingPanel" role="group" aria-label="Reading settings" hidden>
+        <div class="panel-label" id="fontLabel">Font</div>
         <div class="segmented" role="radiogroup" aria-labelledby="fontLabel">
           <label><input type="radio" name="font" value="serif"><span>Serif</span></label>
           <label><input type="radio" name="font" value="sans"><span>Sans</span></label>
           <label><input type="radio" name="font" value="mono"><span>Mono</span></label>
         </div>
-        <div class="panel-label">Dimensione</div>
+        <div class="panel-label">Size</div>
         <div class="stepper">
-          <button type="button" id="sizeDown" aria-label="Riduci il testo">A−</button>
+          <button type="button" id="sizeDown" aria-label="Smaller text">A−</button>
           <output id="sizeValue" aria-live="polite"></output>
-          <button type="button" id="sizeUp" aria-label="Ingrandisci il testo">A+</button>
+          <button type="button" id="sizeUp" aria-label="Larger text">A+</button>
         </div>
-        <div class="panel-label" id="langLabel" title="Decide come vanno a capo le parole nello stile libro e quale dizionario usa il controllo ortografico">Lingua del testo</div>
+        <div class="panel-label" id="langLabel" title="Sets how words break across lines in the book style and which dictionary the spellcheck uses">Text language</div>
         <div class="segmented" role="radiogroup" aria-labelledby="langLabel">
           <label id="langAuto"><input type="radio" name="lang" value="auto"><span>Auto</span></label>
           <label><input type="radio" name="lang" value="en"><span>English</span></label>
           <label><input type="radio" name="lang" value="it"><span>Italiano</span></label>
         </div>
-        <button type="button" class="text-action" id="readingReset">Ripristina predefiniti</button>
+        <button type="button" class="text-action" id="readingReset">Reset to defaults</button>
       </div>
     </div>
   </header>
 
   <main class="workspace" id="workspace">
     <aside id="sidebar">
-      <div class="aside-top"><span class="section-label" id="listLabel">I tuoi scritti</span><button class="new-btn" id="newDraft" aria-label="Nuovo scritto" title="Nuovo scritto (Alt+N)">+</button><button class="text-action danger" id="emptyTrash" title="Elimina definitivamente tutti gli scritti nel cestino" hidden>Svuota</button></div>
+      <div class="aside-top"><span class="section-label" id="listLabel">Your drafts</span><button class="new-btn" id="newDraft" aria-label="New draft" title="New draft (Alt+N)">+</button><button class="text-action danger" id="emptyTrash" title="Delete every draft in the trash for good" hidden>Empty</button></div>
       <div class="draft-list" id="draftList"></div>
-      <button class="trash-toggle" id="trashToggle" type="button">Cestino</button>
-      <div class="aside-bottom">Un posto per scrivere.<br>Niente feed, niente distrazioni.</div>
+      <button class="trash-toggle" id="trashToggle" type="button">Trash</button>
+      <div class="aside-bottom">A place to write.<br>No feeds, no distractions.</div>
     </aside>
 
-    <section class="editor-card" aria-label="Editor di scrittura">
+    <section class="editor-card" aria-label="Writing editor">
       <div class="editor-toolbar">
-        <div class="save-state"><span class="save-dot"></span><span id="saveLabel">Caricamento…</span></div>
+        <div class="save-state"><span class="save-dot"></span><span id="saveLabel">Loading…</span></div>
         <div class="toolbar-right">
-          <button class="text-action" id="exportBtn" title="Esporta il testo in un file Markdown (Ctrl+Shift+E)">Esporta .md</button>
-          <button class="text-action" id="restoreBtn" hidden>Ripristina</button>
-          <button class="text-action danger" id="purgeBtn" hidden>Elimina definitivamente</button>
-          <button class="text-action danger" id="deleteBtn">Sposta nel cestino</button>
+          <button class="text-action" id="exportBtn" title="Export the text as a Markdown file (Ctrl+Shift+E)">Export .md</button>
+          <button class="text-action" id="restoreBtn" hidden>Restore</button>
+          <button class="text-action danger" id="purgeBtn" hidden>Delete for good</button>
+          <button class="text-action danger" id="deleteBtn">Move to trash</button>
         </div>
       </div>
       <div class="writing-area" id="writingArea">
         <div class="date-line" id="dateLine"></div>
-        <textarea id="title" rows="1" maxlength="240" placeholder="Dai un titolo al pensiero…" aria-label="Titolo"></textarea>
+        <textarea id="title" rows="1" maxlength="240" placeholder="Give the thought a title…" aria-label="Title"></textarea>
         <div class="ornament" aria-hidden="true">❧</div>
-        <textarea id="content" placeholder="Comincia da qui. Non serve sapere dove andrai a finire." aria-label="Contenuto"></textarea>
+        <textarea id="content" placeholder="Start here. You don't need to know where you'll end up." aria-label="Text"></textarea>
       </div>
       <div class="empty-state" id="emptyState" hidden>
-        <div><div class="glyph">¶</div><h2>Uno spazio vuoto.</h2><p>Un'idea, un appunto, una prima frase. Comincia da quello che hai.</p><button class="primary-btn" id="firstDraft">Comincia a scrivere</button></div>
+        <div><div class="glyph">¶</div><h2>An empty space.</h2><p>An idea, a note, a first sentence. Start with what you have.</p><button class="primary-btn" id="firstDraft">Start writing</button></div>
       </div>
       <div class="editor-footer">
-        <span id="wordCount">0 parole</span>
-        <span class="footer-hint"><kbd>Ctrl</kbd><kbd>⇧</kbd><kbd>E</kbd> esporta · autosalvataggio attivo</span>
-        <span id="charCount">0 caratteri</span>
+        <span id="wordCount">0 words</span>
+        <span class="footer-hint"><kbd>Ctrl</kbd><kbd>⇧</kbd><kbd>E</kbd> export · autosave on</span>
+        <span id="charCount">0 characters</span>
       </div>
     </section>
   </main>
 </div>
-<button class="small-btn focus-exit" id="focusExit" type="button">Esci dal focus · Esc</button>
-<div class="focus-alert" id="focusAlert">Non salvato: le modifiche sono conservate in questo browser</div>
+<button class="small-btn focus-exit" id="focusExit" type="button">Exit focus · Esc</button>
+<div class="focus-alert" id="focusAlert">Not saved: your changes are kept in this browser</div>
 <div class="notice" id="notice" role="status"></div>
 <script>
 (() => {
@@ -288,8 +288,8 @@
   const now = () => new Date().toISOString();
   const formatDate = (iso) => {
     const d = new Date(iso);
-    if (Number.isNaN(d.getTime())) return "Bozza";
-    return new Intl.DateTimeFormat("it-IT", { day: "numeric", month: "long", year: "numeric" }).format(d);
+    if (Number.isNaN(d.getTime())) return "Draft";
+    return new Intl.DateTimeFormat("en", { day: "numeric", month: "long", year: "numeric" }).format(d);
   };
   const activeDraft = () => drafts.find(d => d.id === activeId);
   const live = () => drafts.filter(d => !d.deletedAt);
@@ -297,7 +297,7 @@
   const byUpdated = (a, b) => (b.updatedAt || "").localeCompare(a.updatedAt || "");
   const byDeleted = (a, b) => (b.deletedAt || "").localeCompare(a.deletedAt || "");
   const latestLiveId = () => (live().sort(byUpdated)[0] || {}).id || null;
-  const titleOf = (d) => d.title.trim() || "Senza titolo";
+  const titleOf = (d) => d.title.trim() || "Untitled";
   // rev: last server revision this window saw (0 = not on the server yet).
   // edited: title/content changed locally since the server last confirmed them.
   const newDraft = () => { const t = now(); return { id: uid(), title: "", content: "", createdAt: t, updatedAt: t, changedAt: t, deletedAt: null, rev: 0, edited: false }; };
@@ -317,13 +317,13 @@
     // Auto follows the browser's language. The fields carry it, not the page,
     // so the writing can be in a language other than the interface.
     titleInput.lang = contentInput.lang = reading.lang === "auto" ? (navigator.language || "") : reading.lang;
-    $("langAuto").title = "Lingua del browser" + (navigator.language ? ": " + navigator.language : "");
+    $("langAuto").title = "Browser language" + (navigator.language ? ": " + navigator.language : "");
     applyBook();
     $("sizeValue").textContent = reading.size + " px";
     $("sizeDown").disabled = reading.size <= MIN_SIZE;
     $("sizeUp").disabled = reading.size >= MAX_SIZE;
   }
-  // The book style belongs to one combination: Carta calda with the serif font.
+  // The book style belongs to one combination: Warm paper with the serif font.
   function applyBook() {
     const root = document.documentElement;
     root.toggleAttribute("data-book", root.dataset.theme === "paper" && reading.font === "serif");
@@ -431,14 +431,14 @@
       }
       writeOutbox();
       if (wrote && channel) channel.postMessage("changed");
-      if (saveError) showNotice("Salvataggio ripristinato");
+      if (saveError) showNotice("Saving works again");
       saveError = null; lastSavedAt = new Date();
     } catch (e) {
       writeOutbox();
       if (!saveError) {
         showNotice(e.status === 403
-          ? "Il server è stato riavviato: ricarica la pagina. Le modifiche sono conservate."
-          : "Server non raggiungibile. Le modifiche restano in questo browser finché non torna.");
+          ? "The server was restarted: reload the page. Your changes are kept."
+          : "Can't reach the server. Your changes stay in this browser until it's back.");
       }
       saveError = e;
       if (e.status !== 403) retryTimer = setTimeout(flush, 5000);
@@ -470,10 +470,10 @@
     // Snapshots from before revisions existed carry no 'edited' flag: assume edited.
     const edited = mine.edited !== false;
     if (edited && (mine.title !== server.title || mine.content !== server.content)) {
-      const copy = { ...newDraft(), title: (mine.title.trim() || "Senza titolo") + " (versione in conflitto)", content: mine.content, edited: true };
+      const copy = { ...newDraft(), title: (mine.title.trim() || "Untitled") + " (conflicting version)", content: mine.content, edited: true };
       drafts.unshift(copy); queuePut(copy);
       if (wasActive) { activeId = copy.id; view = "drafts"; }
-      showNotice("«" + titleOf(server) + "» è stato modificato in un'altra finestra. Le tue modifiche sono in una copia.");
+      showNotice("\u201c" + titleOf(server) + "\u201d was changed in another window. Your edits are in a copy.");
     } else if ((mine.deletedAt || null) !== (server.deletedAt || null)) {
       // Only the trash state differed: reapply it on top of the newer version.
       server.deletedAt = mine.deletedAt || null; server.changedAt = now(); queuePut(server);
@@ -489,11 +489,11 @@
   function refreshSaveLabel() {
     const label = $("saveLabel");
     document.documentElement.toggleAttribute("data-unsaved", !!saveError);
-    if (saveError) { label.textContent = "Non salvato"; label.title = "Le modifiche sono conservate in questo browser"; }
-    else if (Object.keys(outbox).length || saveTimer) { label.textContent = "Salvataggio…"; label.title = ""; }
+    if (saveError) { label.textContent = "Not saved"; label.title = "Your changes are kept in this browser"; }
+    else if (Object.keys(outbox).length || saveTimer) { label.textContent = "Saving…"; label.title = ""; }
     else {
-      label.textContent = "Salvato";
-      label.title = lastSavedAt ? "Salvato in quiet.db alle " + lastSavedAt.toLocaleTimeString("it-IT") : "Salvato in quiet.db";
+      label.textContent = "Saved";
+      label.title = lastSavedAt ? "Saved to quiet.db at " + lastSavedAt.toLocaleTimeString() : "Saved to quiet.db";
     }
   }
   // --- Sync with other windows ----------------------------------------------
@@ -537,7 +537,7 @@
       const res = await api("POST", "/api/import", rows);
       localStorage.setItem(LEGACY_KEY + "-migrated", raw);  // keep a copy, just in case
       localStorage.removeItem(LEGACY_KEY);
-      if (res.imported) showNotice(res.imported + (res.imported === 1 ? " scritto importato" : " scritti importati") + " nel database");
+      if (res.imported) showNotice(res.imported + (res.imported === 1 ? " draft imported" : " drafts imported") + " into the database");
     } catch (e) { /* left in place; retried on next load */ }
   }
   async function load() {
@@ -546,7 +546,7 @@
     await adoptOrphanOutboxes();
     await migrateLegacy();
     try { drafts = (await api("GET", "/api/drafts")).map(fromServer); }
-    catch (e) { drafts = []; saveError = e; showNotice("Impossibile leggere gli scritti dal server. Ricarica la pagina."); }
+    catch (e) { drafts = []; saveError = e; showNotice("Couldn't load the drafts from the server. Reload the page."); }
     // Overlay edits the server hasn't confirmed yet, so nothing typed is hidden.
     for (const [id, entry] of Object.entries(outbox)) {
       const i = drafts.findIndex(d => d.id === id);
@@ -568,7 +568,7 @@
   function makeDraft() {
     saveCurrent();
     view = "drafts";
-    // Reuse an untouched draft instead of piling up empty "Senza titolo" entries.
+    // Reuse an untouched draft instead of piling up empty "Untitled" entries.
     const blank = live().find(d => !d.title.trim() && !d.content.trim());
     if (blank) {
       activeId = blank.id; renderList(); showEditor(); titleInput.focus();
@@ -614,14 +614,14 @@
     const inTrash = view === "trash";
     const items = inTrash ? trashed().sort(byDeleted) : live().sort(byUpdated);
     const trashCount = trashed().length;
-    $("listLabel").textContent = inTrash ? "Cestino" : "I tuoi scritti";
+    $("listLabel").textContent = inTrash ? "Trash" : "Your drafts";
     $("newDraft").hidden = inTrash;
     $("emptyTrash").hidden = !inTrash || !items.length;
-    $("trashToggle").textContent = inTrash ? "← Torna agli scritti" : "Cestino" + (trashCount ? " · " + trashCount : "");
+    $("trashToggle").textContent = inTrash ? "← Back to drafts" : "Trash" + (trashCount ? " · " + trashCount : "");
     if (!items.length) {
       const empty = document.createElement("div");
       empty.className = "empty-list";
-      empty.textContent = inTrash ? "Il cestino è vuoto." : "I tuoi scritti appariranno qui.";
+      empty.textContent = inTrash ? "The trash is empty." : "Your drafts will appear here.";
       list.appendChild(empty);
       return;
     }
@@ -632,7 +632,7 @@
       if (d.id === activeId) b.setAttribute("aria-current", "true");
       const t = document.createElement("span"); t.className = "draft-title"; t.textContent = titleOf(d);
       const m = document.createElement("span"); m.className = "draft-meta";
-      m.textContent = inTrash ? "Eliminato il " + formatDate(d.deletedAt) : formatDate(d.updatedAt || d.createdAt);
+      m.textContent = inTrash ? "Deleted " + formatDate(d.deletedAt) : formatDate(d.updatedAt || d.createdAt);
       b.append(t, m);
       b.addEventListener("click", () => {
         if (d.id === activeId) return;
@@ -658,13 +658,13 @@
       setValue(contentInput, d.content || "");
       fitTitle();
       $("dateLine").textContent = d.deletedAt
-        ? "Nel cestino dal " + formatDate(d.deletedAt) + " · sola lettura"
-        : "Iniziato il " + formatDate(d.createdAt || d.updatedAt);
+        ? "In the trash since " + formatDate(d.deletedAt) + " · read-only"
+        : "Started " + formatDate(d.createdAt || d.updatedAt);
       refreshSaveLabel();
       updateCounts();
     } else {
       titleInput.value = ""; contentInput.value = "";
-      $("wordCount").textContent = "0 parole"; $("charCount").textContent = "0 caratteri";
+      $("wordCount").textContent = "0 words"; $("charCount").textContent = "0 characters";
     }
   }
   // Replace a field's text without moving the caret when nothing changed,
@@ -681,8 +681,8 @@
   function updateCounts() {
     const text = contentInput.value;
     const words = wordTotal(text);
-    $("wordCount").textContent = words + (words === 1 ? " parola" : " parole");
-    $("charCount").textContent = text.length + (text.length === 1 ? " carattere" : " caratteri");
+    $("wordCount").textContent = words + (words === 1 ? " word" : " words");
+    $("charCount").textContent = text.length + (text.length === 1 ? " character" : " characters");
   }
   function showNotice(message, action) {
     const el = $("notice");
@@ -722,10 +722,10 @@
     const blob = new Blob([markdown], { type: "text/markdown;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
-    const safeTitle = (d.title.trim() || "senza-titolo").replace(/[\\/:*?"<>|]+/g, "-").slice(0, 80);
+    const safeTitle = (d.title.trim() || "untitled").replace(/[\\/:*?"<>|]+/g, "-").slice(0, 80);
     a.href = url; a.download = safeTitle + ".md"; document.body.appendChild(a); a.click(); a.remove();
     URL.revokeObjectURL(url);
-    showNotice("File Markdown esportato");
+    showNotice("Markdown file exported");
   }
   // Trash: deleting only sets deletedAt. Trashed drafts stay in the database,
   // read-only, until restored or deleted for good from the trash view.
@@ -736,7 +736,7 @@
     queuePut(d);
     activeId = latestLiveId();
     renderList(); showEditor();
-    showNotice("Spostato nel cestino", { label: "Annulla", run: () => restoreDraft(d.id) });
+    showNotice("Moved to trash", { label: "Undo", run: () => restoreDraft(d.id) });
   }
   function restoreDraft(id) {
     const d = drafts.find(x => x.id === id); if (!d || !d.deletedAt) return;
@@ -745,26 +745,26 @@
     queuePut(d);
     view = "drafts"; activeId = d.id;
     renderList(); showEditor();
-    showNotice("Ripristinato");
+    showNotice("Restored");
   }
   function purgeCurrent() {
     const d = activeDraft(); if (!d || !d.deletedAt) return;
-    if (!confirm('Eliminare definitivamente "' + titleOf(d) + '"? Questa azione non si può annullare.')) return;
+    if (!confirm('Delete "' + titleOf(d) + '" for good? This can\'t be undone.')) return;
     drafts = drafts.filter(x => x.id !== d.id);
     queueDelete(d.id);
     activeId = (view === "trash" && trashed().sort(byDeleted)[0] || {}).id || latestLiveId();
     renderList(); showEditor();
-    showNotice("Eliminato definitivamente");
+    showNotice("Deleted for good");
   }
   function emptyTrash() {
     const items = trashed(); if (!items.length) return;
-    const what = items.length === 1 ? "lo scritto" : "i " + items.length + " scritti";
-    if (!confirm("Eliminare definitivamente " + what + " nel cestino? Questa azione non si può annullare.")) return;
+    const what = items.length === 1 ? "the draft" : "the " + items.length + " drafts";
+    if (!confirm("Delete " + what + " in the trash for good? This can't be undone.")) return;
     drafts = live();
     items.forEach(d => queueDelete(d.id));
     if (!activeDraft()) activeId = latestLiveId();
     renderList(); showEditor();
-    showNotice("Cestino svuotato");
+    showNotice("Trash emptied");
   }
   function setView(next) {
     saveCurrent();
@@ -814,7 +814,7 @@
       setReadingPanel(false); $("readingToggle").focus(); return;
     }
     if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === "s") {
-      e.preventDefault(); saveCurrent(); if (!saveError) showNotice("Salvato");
+      e.preventDefault(); saveCurrent(); if (!saveError) showNotice("Saved");
     }
     if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === "e") {
       e.preventDefault(); exportMarkdown();
