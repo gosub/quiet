@@ -2,15 +2,24 @@
 
 A small place to write, without distractions. Quiet is a local writing app: a single executable with no dependencies that opens a page to write on in your browser. Your writing stays on your computer, in an SQLite database.
 
-## Requirements
+## Download
 
-A modern browser (Firefox, Chrome, Edge, Safari). Nothing else to install.
+Executables for Linux, macOS and Windows are on the [releases page](https://github.com/gosub/quiet/releases/latest). All you need besides is a modern browser (Firefox, Chrome, Edge, Safari).
+
+On Linux and macOS, make the file executable first. On macOS the executable isn't signed, so the system blocks it the first time; clear the block with:
+
+```sh
+chmod +x quiet-darwin-arm64
+xattr -d com.apple.quarantine quiet-darwin-arm64
+```
 
 ## Running
 
 ```sh
 ./quiet
 ```
+
+On Windows you can double-click `quiet-windows-amd64.exe` instead: a console window stays open while Quiet runs, and closing it stops the server.
 
 The server starts at <http://127.0.0.1:8765> and opens the browser. To stop it, press `Ctrl+C` in the terminal.
 
@@ -115,6 +124,7 @@ main.go                    server, API and database
 index.html                 the page (HTML, CSS and JavaScript)
 fonts/EBGaramond.woff2     font for the book style, served locally
 fonts/OFL-EBGaramond.txt   the font's license
+.github/workflows/         builds the executables for every vX.Y.Z tag
 ```
 
 The page and the font are embedded in the executable at build time.
