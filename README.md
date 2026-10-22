@@ -1,18 +1,15 @@
 # Quiet
 
-Un piccolo posto per scrivere, senza distrazioni. Quiet è un'app di scrittura locale: un solo script Python, senza dipendenze, che apre nel browser un foglio su cui scrivere. Gli scritti restano sul tuo computer, in un database SQLite accanto allo script.
+Un piccolo posto per scrivere, senza distrazioni. Quiet è un'app di scrittura locale: un solo eseguibile, senza dipendenze, che apre nel browser un foglio su cui scrivere. Gli scritti restano sul tuo computer, in un database SQLite.
 
 ## Requisiti
 
-- Python 3.7 o successivo, con SQLite 3.24 o successivo (quello incluso in qualsiasi installazione recente)
-- Un browser moderno (Firefox, Chrome, Edge, Safari)
-
-Non serve installare nient'altro.
+Un browser moderno (Firefox, Chrome, Edge, Safari). Non serve installare nient'altro.
 
 ## Avvio
 
 ```sh
-python3 quiet.py
+./quiet
 ```
 
 Il server parte su <http://127.0.0.1:8765> e apre il browser. Per fermarlo, premi `Ctrl+C` nel terminale.
@@ -23,11 +20,19 @@ Puoi tenere aperte più finestre o schede contemporaneamente (vedi [Più finestr
 
 | Cosa | Dove |
 | --- | --- |
-| Scritti (anche quelli nel cestino) | `quiet.db`, accanto a `quiet.py` |
+| Scritti (anche quelli nel cestino) | `quiet.db` nella cartella dati dell'utente (vedi sotto) |
 | Tema, modalità focus, carattere e dimensione del testo | `localStorage` del browser |
 | Modifiche non ancora confermate dal server | `localStorage` del browser, finché il server non le salva |
 
-`quiet.db` è escluso da git (`.gitignore`), perché contiene i tuoi testi.
+La cartella dati dipende dal sistema, e il percorso esatto viene stampato all'avvio:
+
+| Sistema | Cartella |
+| --- | --- |
+| Linux | `~/.local/share/quiet` (o `$XDG_DATA_HOME/quiet`) |
+| macOS | `~/Library/Application Support/Quiet` |
+| Windows | `%AppData%\Quiet` |
+
+Per usare un altro database, avvia Quiet con `-db percorso/del/file.db`.
 
 **Backup.** Il modo più sicuro è copiare il database con SQLite, anche a server avviato:
 
@@ -93,16 +98,38 @@ Il server risponde solo su `127.0.0.1` e non è raggiungibile da altri dispositi
 
 ## Configurazione
 
-Non ci sono opzioni da riga di comando. Per cambiare la porta, modifica `PORT` in cima a `quiet.py`. Gli scritti non ne risentono, perché stanno nel database. Tema e impostazioni di lettura invece sono legati all'indirizzo, quindi con la nuova porta ripartono dai valori predefiniti.
+| Opzione | Effetto |
+| --- | --- |
+| `-port 8765` | Porta su cui ascolta il server |
+| `-db percorso` | Database da usare al posto di `quiet.db` nella cartella dati |
+| `-no-browser` | Non apre il browser all'avvio |
+
+Se cambi la porta, gli scritti non ne risentono, perché stanno nel database. Tema e impostazioni di lettura invece sono legati all'indirizzo, quindi con la nuova porta ripartono dai valori predefiniti.
 
 ## Struttura del progetto
 
 ```
 LICENSE                    testo della GNU GPL v3
-quiet.py                   server, API, database e pagina (HTML, CSS e JavaScript inclusi)
+main.go                    server, API e database
+index.html                 la pagina (HTML, CSS e JavaScript)
 fonts/EBGaramond.woff2     carattere dello stile libro, servito in locale
 fonts/OFL-EBGaramond.txt   licenza del carattere
-quiet.db                   database degli scritti, creato al primo avvio
+```
+
+La pagina e il carattere sono incorporati nell'eseguibile al momento della compilazione.
+
+## Compilare dai sorgenti
+
+Serve Go 1.26 o successivo. SQLite è una libreria in Go puro, quindi non serve un compilatore C:
+
+```sh
+go build
+```
+
+Oppure, senza scaricare il repository:
+
+```sh
+go install github.com/gosub/quiet@latest
 ```
 
 ## Crediti

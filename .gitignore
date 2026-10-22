@@ -1,2 +1,5 @@
 quiet.db
 quiet.db-journal
+/quiet
+/quiet.exe
+__pycache__/
