@@ -660,12 +660,12 @@
       $("dateLine").textContent = d.deletedAt
         ? "In the trash since " + formatDate(d.deletedAt) + " · read-only"
         : "Started " + formatDate(d.createdAt || d.updatedAt);
-      refreshSaveLabel();
       updateCounts();
     } else {
       titleInput.value = ""; contentInput.value = "";
       $("wordCount").textContent = "0 words"; $("charCount").textContent = "0 characters";
     }
+    refreshSaveLabel();
   }
   // Replace a field's text without moving the caret when nothing changed,
   // and keeping it roughly in place when something did.
