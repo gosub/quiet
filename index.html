@@ -224,6 +224,12 @@
           <output id="sizeValue" aria-live="polite"></output>
           <button type="button" id="sizeUp" aria-label="Ingrandisci il testo">A+</button>
         </div>
+        <div class="panel-label" id="langLabel" title="Decide come vanno a capo le parole nello stile libro e quale dizionario usa il controllo ortografico">Lingua del testo</div>
+        <div class="segmented" role="radiogroup" aria-labelledby="langLabel">
+          <label id="langAuto"><input type="radio" name="lang" value="auto"><span>Auto</span></label>
+          <label><input type="radio" name="lang" value="en"><span>English</span></label>
+          <label><input type="radio" name="lang" value="it"><span>Italiano</span></label>
+        </div>
         <button type="button" class="text-action" id="readingReset">Ripristina predefiniti</button>
       </div>
     </div>
@@ -300,12 +306,18 @@
   const wordTotal = (text) => (text.trim().match(/\S+/g) || []).length;
 
   const FONTS = ["serif", "sans", "mono"];  // font stacks live in the CSS (--writing-font)
-  const DEFAULT_READING = { font: "serif", size: 20 }, MIN_SIZE = 16, MAX_SIZE = 28;
+  const LANGS = ["auto", "en", "it"];       // language of the writing, for hyphenation and spellcheck
+  const DEFAULT_READING = { font: "serif", size: 20, lang: "auto" }, MIN_SIZE = 16, MAX_SIZE = 28;
   let reading = { ...DEFAULT_READING };
   function applyReading() {
     document.documentElement.dataset.font = reading.font;
     document.documentElement.style.setProperty("--writing-size", reading.size + "px");
     document.querySelectorAll('input[name="font"]').forEach(r => { r.checked = r.value === reading.font; });
+    document.querySelectorAll('input[name="lang"]').forEach(r => { r.checked = r.value === reading.lang; });
+    // Auto follows the browser's language. The fields carry it, not the page,
+    // so the writing can be in a language other than the interface.
+    titleInput.lang = contentInput.lang = reading.lang === "auto" ? (navigator.language || "") : reading.lang;
+    $("langAuto").title = "Lingua del browser" + (navigator.language ? ": " + navigator.language : "");
     applyBook();
     $("sizeValue").textContent = reading.size + " px";
     $("sizeDown").disabled = reading.size <= MIN_SIZE;
@@ -330,6 +342,7 @@
       focusMode = !!settings.focusMode;
       if (FONTS.includes(settings.font)) reading.font = settings.font;
       if (Number.isInteger(settings.size)) reading.size = Math.min(MAX_SIZE, Math.max(MIN_SIZE, settings.size));
+      if (LANGS.includes(settings.lang)) reading.lang = settings.lang;
     } catch (e) { document.documentElement.dataset.theme = "paper"; }
     applyReading();
     applyFocusMode();
@@ -549,7 +562,7 @@
   }
   function persistSettings() {
     try {
-      localStorage.setItem(SETTINGS_KEY, JSON.stringify({ theme: $("theme").value, focusMode, font: reading.font, size: reading.size }));
+      localStorage.setItem(SETTINGS_KEY, JSON.stringify({ theme: $("theme").value, focusMode, font: reading.font, size: reading.size, lang: reading.lang }));
     } catch (e) { /* settings are a convenience; the change still applies to this session */ }
   }
   function makeDraft() {
@@ -784,6 +797,7 @@
     if (!$("readingPanel").hidden && !e.target.closest("#readingPanel, #readingToggle")) setReadingPanel(false);
   });
   document.querySelectorAll('input[name="font"]').forEach(r => r.addEventListener("change", () => setReading({ font: r.value })));
+  document.querySelectorAll('input[name="lang"]').forEach(r => r.addEventListener("change", () => setReading({ lang: r.value })));
   $("sizeDown").addEventListener("click", () => setReading({ size: Math.max(MIN_SIZE, reading.size - 1) }));
   $("sizeUp").addEventListener("click", () => setReading({ size: Math.min(MAX_SIZE, reading.size + 1) }));
   $("readingReset").addEventListener("click", () => setReading(DEFAULT_READING));

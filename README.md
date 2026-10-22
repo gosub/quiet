@@ -61,7 +61,8 @@ In alternativa, ferma il server e copia `quiet.db`. Per riprendere da un backup,
 ### Aspetto
 
 - **Atmosfera:** tre temi, *Carta calda*, *Studio chiaro* e *Mezzanotte*.
-- **Aa:** carattere del testo (Serif, Sans, Mono) e dimensione (da 16 a 28 px, predefinita 20).
+- **Aa:** carattere del testo (Serif, Sans, Mono), dimensione (da 16 a 28 px, predefinita 20) e lingua del testo.
+- **Lingua del testo:** decide come vanno a capo le parole nello stile libro e quale dizionario usa il controllo ortografico del browser. *Auto*, il valore predefinito, segue la lingua del browser; *English* e *Italiano* la fissano, ad esempio se scrivi in italiano con un browser in inglese.
 - **Stile libro:** con *Carta calda* e *Serif* la pagina imita un libro stampato. Usa EB Garamond, numeri all'antica, testo giustificato e sillabato, titolo centrato e un ornamento sotto il titolo.
 
 ### Modalità focus
