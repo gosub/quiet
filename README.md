@@ -1,148 +1,148 @@
 # Quiet
 
-Un piccolo posto per scrivere, senza distrazioni. Quiet è un'app di scrittura locale: un solo eseguibile, senza dipendenze, che apre nel browser un foglio su cui scrivere. Gli scritti restano sul tuo computer, in un database SQLite.
+A small place to write, without distractions. Quiet is a local writing app: a single executable with no dependencies that opens a page to write on in your browser. Your writing stays on your computer, in an SQLite database.
 
-## Requisiti
+## Requirements
 
-Un browser moderno (Firefox, Chrome, Edge, Safari). Non serve installare nient'altro.
+A modern browser (Firefox, Chrome, Edge, Safari). Nothing else to install.
 
-## Avvio
+## Running
 
 ```sh
 ./quiet
 ```
 
-Il server parte su <http://127.0.0.1:8765> e apre il browser. Per fermarlo, premi `Ctrl+C` nel terminale.
+The server starts at <http://127.0.0.1:8765> and opens the browser. To stop it, press `Ctrl+C` in the terminal.
 
-Puoi tenere aperte più finestre o schede contemporaneamente (vedi [Più finestre aperte](#più-finestre-aperte)). Non puoi invece avviare due server insieme: il secondo trova la porta già occupata e termina con un errore (`Address already in use`).
+You can keep several windows or tabs open at once (see [Several windows](#several-windows)). You can't run two servers at once, though: the second one finds the port taken and exits with an error (`address already in use`).
 
-## Dove sono i dati
+## Where your data lives
 
-| Cosa | Dove |
+| What | Where |
 | --- | --- |
-| Scritti (anche quelli nel cestino) | `quiet.db` nella cartella dati dell'utente (vedi sotto) |
-| Tema, modalità focus, carattere e dimensione del testo | `localStorage` del browser |
-| Modifiche non ancora confermate dal server | `localStorage` del browser, finché il server non le salva |
+| Drafts (including those in the trash) | `quiet.db` in your user data directory (see below) |
+| Theme, focus mode, font, text size and text language | The browser's `localStorage` |
+| Changes the server hasn't confirmed yet | The browser's `localStorage`, until the server saves them |
 
-La cartella dati dipende dal sistema, e il percorso esatto viene stampato all'avvio:
+The data directory depends on the system, and the exact path is printed at startup:
 
-| Sistema | Cartella |
+| System | Directory |
 | --- | --- |
-| Linux | `~/.local/share/quiet` (o `$XDG_DATA_HOME/quiet`) |
+| Linux | `~/.local/share/quiet` (or `$XDG_DATA_HOME/quiet`) |
 | macOS | `~/Library/Application Support/Quiet` |
 | Windows | `%AppData%\Quiet` |
 
-Per usare un altro database, avvia Quiet con `-db percorso/del/file.db`.
+To use a different database, start Quiet with `-db path/to/file.db`.
 
-**Backup.** Il modo più sicuro è copiare il database con SQLite, anche a server avviato:
+**Backups.** The safest way is to copy the database with SQLite, even while the server is running:
 
 ```sh
 sqlite3 quiet.db ".backup quiet-backup.db"
 ```
 
-In alternativa, ferma il server e copia `quiet.db`. Per riprendere da un backup, sostituisci `quiet.db` a server fermo.
+Otherwise, stop the server and copy `quiet.db`. To restore a backup, replace `quiet.db` while the server is stopped.
 
-**Aggiornamenti.** Quando una nuova versione di Quiet cambia la struttura del database, `quiet.db` viene aggiornato da solo all'avvio, senza perdere dati. Dopo un aggiornamento, riavvia il server e ricarica tutte le finestre aperte.
+**Updates.** When a new version of Quiet changes the database layout, `quiet.db` is upgraded on its own at startup, without losing anything. After an update, restart the server and reload every open window.
 
-**Versioni precedenti.** Le prime versioni salvavano gli scritti solo nel browser. Al primo avvio vengono importati automaticamente nel database, e una copia resta nel browser sotto la chiave `quiet-writing-drafts-v1-migrated`.
+**Coming from the Python version.** It kept `quiet.db` next to `quiet.py`. Move that file into the data directory above, or point Quiet at it with `-db`. The very first versions kept drafts only in the browser: they are imported into the database automatically on first load, and a copy stays in the browser under the key `quiet-writing-drafts-v1-migrated`.
 
-## Come si usa
+## Using Quiet
 
-### Scrivere
+### Writing
 
-- **Salvataggio automatico:** ogni modifica viene salvata poco dopo che smetti di scrivere, e comunque almeno ogni 2 secondi se scrivi senza pause. L'etichetta in alto a sinistra mostra *Salvataggio…*, *Salvato* o *Non salvato*.
-- **Nuovo scritto:** il pulsante **+** o `Alt+N`. Se esiste già uno scritto vuoto, si apre quello invece di crearne un altro.
-- **Esportare:** **Esporta .md** o `Ctrl+Shift+E` scarica lo scritto in Markdown. Il titolo diventa l'intestazione `# Titolo`, quindi per capitoli e sottocapitoli usa `##` e `###`.
+- **Autosave:** every change is saved shortly after you stop typing, and at least every 2 seconds if you type without pausing. The label at the top left reads *Saving…*, *Saved* or *Not saved*.
+- **New draft:** the **+** button or `Alt+N`. If an empty draft already exists, it opens that one instead of making another.
+- **Export:** **Export .md** or `Ctrl+Shift+E` downloads the draft as Markdown. The title becomes the `# Title` heading, so use `##` and `###` for chapters and sections.
 
-### Cestino
+### Trash
 
-**Sposta nel cestino** non chiede conferma: per qualche secondo compare un avviso con **Annulla**. Il link **Cestino** sotto la lista mostra gli scritti eliminati. Da lì puoi aprirli in sola lettura, **Ripristinarli** o **Eliminarli definitivamente**, e **Svuota** li elimina tutti. Solo queste ultime due azioni sono irreversibili e chiedono conferma. Il cestino non si svuota mai da solo.
+**Move to trash** doesn't ask for confirmation: a notice with **Undo** shows for a few seconds instead. The **Trash** link under the list shows deleted drafts. From there you can open them read-only, **Restore** them or **Delete them for good**, and **Empty** deletes them all. Only these last two actions can't be undone, and they ask first. The trash never empties itself.
 
-### Aspetto
+### Appearance
 
-- **Atmosfera:** tre temi, *Carta calda*, *Studio chiaro* e *Mezzanotte*.
-- **Aa:** carattere del testo (Serif, Sans, Mono), dimensione (da 16 a 28 px, predefinita 20) e lingua del testo.
-- **Lingua del testo:** decide come vanno a capo le parole nello stile libro e quale dizionario usa il controllo ortografico del browser. *Auto*, il valore predefinito, segue la lingua del browser; *English* e *Italiano* la fissano, ad esempio se scrivi in italiano con un browser in inglese.
-- **Stile libro:** con *Carta calda* e *Serif* la pagina imita un libro stampato. Usa EB Garamond, numeri all'antica, testo giustificato e sillabato, titolo centrato e un ornamento sotto il titolo.
+- **Mood:** three themes, *Warm paper*, *Light studio* and *Midnight*.
+- **Aa:** font (Serif, Sans, Mono), text size (16 to 28 px, 20 by default) and text language.
+- **Text language:** sets how words break across lines in the book style, and which dictionary the browser's spellcheck uses. *Auto*, the default, follows the browser's language; *English* and *Italiano* fix it, for example when you write in Italian in an English browser.
+- **Book style:** with *Warm paper* and *Serif* the page looks like a printed book. It uses EB Garamond, old-style figures, justified and hyphenated text, a centered title and an ornament below it.
 
-### Modalità focus
+### Focus mode
 
-**Modalità focus** o `Ctrl+Shift+F` lascia solo il foglio e il testo. Per uscire usa `Esc`, oppure il pulsante che compare quando muovi il mouse. Se il salvataggio non riesce, un piccolo avviso compare in basso a sinistra.
+**Focus mode** or `Ctrl+Shift+F` leaves only the page and the words. To leave it, press `Esc` or use the button that appears when you move the mouse. If saving fails, a small notice appears at the bottom left.
 
-### Scorciatoie da tastiera
+### Keyboard shortcuts
 
-Su macOS `Cmd` funziona al posto di `Ctrl`.
+On macOS, `Cmd` works in place of `Ctrl`.
 
-| Tasti | Azione |
+| Keys | Action |
 | --- | --- |
-| `Ctrl+S` | Salva subito (non serve: il salvataggio è automatico) |
-| `Ctrl+Shift+E` | Esporta lo scritto in Markdown |
-| `Alt+N` | Nuovo scritto |
-| `Ctrl+Shift+F` | Entra o esce dalla modalità focus |
-| `Invio` nel titolo | Passa al testo |
-| `Esc` | Chiude il pannello **Aa**, poi esce dalla modalità focus, poi torna dal cestino agli scritti |
+| `Ctrl+S` | Save now (not needed: saving is automatic) |
+| `Ctrl+Shift+E` | Export the draft as Markdown |
+| `Alt+N` | New draft |
+| `Ctrl+Shift+F` | Enter or leave focus mode |
+| `Enter` in the title | Move to the text |
+| `Esc` | Close the **Aa** panel, then leave focus mode, then go back from the trash to your drafts |
 
-## Più finestre aperte
+## Several windows
 
-Puoi scrivere in più finestre o schede, anche in browser diversi:
+You can write in several windows or tabs, even in different browsers:
 
-- **Sincronizzazione:** le modifiche fatte in una finestra compaiono nelle altre. Tra schede dello stesso browser l'aggiornamento è quasi immediato; un altro browser si aggiorna quando torna in primo piano, e comunque ogni 15 secondi.
-- **Conflitti:** se due finestre modificano lo stesso scritto quasi nello stesso momento, nessuna sovrascrive l'altra. Lo scritto conserva la versione salvata per prima, e le modifiche dell'altra finestra diventano una copia intitolata *"Titolo (versione in conflitto)"*. Le due versioni si uniscono a mano.
+- **Sync:** changes made in one window show up in the others. Between tabs of the same browser this is almost immediate; another browser catches up when it comes to the foreground, and every 15 seconds anyway.
+- **Conflicts:** if two windows edit the same draft at almost the same moment, neither overwrites the other. The draft keeps the version saved first, and the other window's changes become a copy titled *"Title (conflicting version)"*. You merge the two by hand.
 
-## Se il server non risponde
+## If the server stops responding
 
-Se il server viene fermato mentre scrivi, l'etichetta diventa *Non salvato* e le modifiche restano conservate nel browser. Quiet riprova ogni 5 secondi e le salva appena il server torna. Se il server è stato riavviato, ricarica la pagina: le modifiche in sospeso vengono salvate al caricamento, anche se la finestra che le conteneva è stata chiusa.
+If the server is stopped while you write, the label turns to *Not saved* and your changes are kept in the browser. Quiet retries every 5 seconds and saves them as soon as the server is back. If the server was restarted, reload the page: pending changes are saved on load, even if the window that held them was closed.
 
-## Sicurezza
+## Security
 
-Il server risponde solo su `127.0.0.1` e non è raggiungibile da altri dispositivi della rete. L'API accetta richieste solo con l'header `Host` di `127.0.0.1` o `localhost`, e con un token casuale generato a ogni avvio. In questo modo una pagina web aperta nello stesso browser non può leggere o modificare gli scritti.
+The server listens only on `127.0.0.1` and can't be reached from other devices on the network. The API only accepts requests whose `Host` header is `127.0.0.1` or `localhost`, and that carry a random token generated at every start. This way a web page open in the same browser can't read or change your drafts.
 
-## Configurazione
+## Options
 
-| Opzione | Effetto |
+| Option | Effect |
 | --- | --- |
-| `-port 8765` | Porta su cui ascolta il server |
-| `-db percorso` | Database da usare al posto di `quiet.db` nella cartella dati |
-| `-no-browser` | Non apre il browser all'avvio |
+| `-port 8765` | Port the server listens on |
+| `-db path` | Database to use instead of `quiet.db` in the data directory |
+| `-no-browser` | Don't open the browser at startup |
 
-Se cambi la porta, gli scritti non ne risentono, perché stanno nel database. Tema e impostazioni di lettura invece sono legati all'indirizzo, quindi con la nuova porta ripartono dai valori predefiniti.
+Changing the port doesn't affect your drafts, since they live in the database. The theme and reading settings are tied to the address, though, so on a new port they start from the defaults.
 
-## Struttura del progetto
+## Project layout
 
 ```
-LICENSE                    testo della GNU GPL v3
-main.go                    server, API e database
-index.html                 la pagina (HTML, CSS e JavaScript)
-fonts/EBGaramond.woff2     carattere dello stile libro, servito in locale
-fonts/OFL-EBGaramond.txt   licenza del carattere
+LICENSE                    the GNU GPL v3
+main.go                    server, API and database
+index.html                 the page (HTML, CSS and JavaScript)
+fonts/EBGaramond.woff2     font for the book style, served locally
+fonts/OFL-EBGaramond.txt   the font's license
 ```
 
-La pagina e il carattere sono incorporati nell'eseguibile al momento della compilazione.
+The page and the font are embedded in the executable at build time.
 
-## Compilare dai sorgenti
+## Building from source
 
-Serve Go 1.26 o successivo. SQLite è una libreria in Go puro, quindi non serve un compilatore C:
+You need Go 1.26 or later. SQLite comes as a pure Go library, so no C compiler is needed:
 
 ```sh
 go build
 ```
 
-Oppure, senza scaricare il repository:
+Or, without cloning the repository:
 
 ```sh
 go install github.com/gosub/quiet@latest
 ```
 
-## Crediti
+## Credits
 
-Il carattere [EB Garamond](https://github.com/octaviopardo/EBGaramond12) è di Georg Duffner e Octavio Pardo, distribuito con la SIL Open Font License 1.1 (`fonts/OFL-EBGaramond.txt`). La versione inclusa è ridotta all'alfabeto latino e a pochi ornamenti, ma conserva tutte le funzioni OpenType.
+The [EB Garamond](https://github.com/octaviopardo/EBGaramond12) typeface is by Georg Duffner and Octavio Pardo, released under the SIL Open Font License 1.1 (`fonts/OFL-EBGaramond.txt`). The included version is trimmed to the Latin alphabet and a few ornaments, but keeps all its OpenType features.
 
-## Autore
+## Author
 
 Giampaolo Guiducci
 
-## Licenza
+## License
 
-Quiet è software libero, distribuito con la [GNU General Public License versione 3](LICENSE) o, a tua scelta, qualsiasi versione successiva (GPL-3.0-or-later). Puoi usarlo, studiarlo, modificarlo e ridistribuirlo; se ne distribuisci una versione modificata, anche quella deve restare sotto GPL e includere il codice sorgente.
+Quiet is free software, released under the [GNU General Public License version 3](LICENSE) or, at your option, any later version (GPL-3.0-or-later). You can use, study, change and share it; if you distribute a modified version, it must stay under the GPL and include its source code.
 
-Il carattere in `fonts/` non è coperto dalla GPL: mantiene la propria licenza, la SIL Open Font License 1.1 (vedi [Crediti](#crediti)).
+The font in `fonts/` is not covered by the GPL: it keeps its own license, the SIL Open Font License 1.1 (see [Credits](#credits)).
