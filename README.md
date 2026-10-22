@@ -29,11 +29,15 @@ You can keep several windows or tabs open at once (see [Several windows](#severa
 
 | What | Where |
 | --- | --- |
-| Drafts (including those in the trash) | `quiet.db` in your user data directory (see below) |
+| Drafts (including those in the trash) | `quiet.db`, next to the executable or in your user data directory (see below) |
 | Theme, focus mode, font, text size and text language | The browser's `localStorage` |
 | Changes the server hasn't confirmed yet | The browser's `localStorage`, until the server saves them |
 
-The data directory depends on the system, and the exact path is printed at startup:
+Quiet looks for `quiet.db` next to the executable first. If it finds one, it uses it: this is the portable setup, where the executable and your writing travel together in one folder, on a USB stick for instance. If there's none, it uses `quiet.db` in your user data directory, creating it on the first run. The path in use is printed at startup.
+
+To make a copy portable, put an empty `quiet.db` next to the executable (`touch quiet.db` is enough, or move an existing database there).
+
+The data directory depends on the system:
 
 | System | Directory |
 | --- | --- |
@@ -53,7 +57,7 @@ Otherwise, stop the server and copy `quiet.db`. To restore a backup, replace `qu
 
 **Updates.** When a new version of Quiet changes the database layout, `quiet.db` is upgraded on its own at startup, without losing anything. After an update, restart the server and reload every open window.
 
-**Coming from the Python version.** It kept `quiet.db` next to `quiet.py`. Move that file into the data directory above, or point Quiet at it with `-db`. The very first versions kept drafts only in the browser: they are imported into the database automatically on first load, and a copy stays in the browser under the key `quiet-writing-drafts-v1-migrated`.
+**Coming from the Python version.** It kept `quiet.db` next to `quiet.py`. Put the executable in that same folder and it picks the database up as it is. The very first versions kept drafts only in the browser: they are imported into the database automatically on first load, and a copy stays in the browser under the key `quiet-writing-drafts-v1-migrated`.
 
 ## Using Quiet
 
@@ -111,7 +115,7 @@ The server listens only on `127.0.0.1` and can't be reached from other devices o
 | Option | Effect |
 | --- | --- |
 | `-port 8765` | Port the server listens on |
-| `-db path` | Database to use instead of `quiet.db` in the data directory |
+| `-db path` | Database to use instead of looking for `quiet.db` |
 | `-no-browser` | Don't open the browser at startup |
 
 Changing the port doesn't affect your drafts, since they live in the database. The theme and reading settings are tied to the address, though, so on a new port they start from the defaults.

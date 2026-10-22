@@ -11,10 +11,11 @@
 // Quiet is a tiny local writing app: a single executable that serves a page
 // to write on at http://127.0.0.1:8765 and opens it in the browser.
 //
-// Drafts are stored in quiet.db (SQLite) in the user's data directory. Drafts
-// left in the browser's localStorage by older versions are imported on first
-// load. The page and EB Garamond, used for the book typography, are embedded
-// in the executable.
+// Drafts are stored in quiet.db (SQLite), next to the executable if there is
+// one there, otherwise in the user's data directory. Drafts left in the
+// browser's localStorage by older versions are imported on first load. The
+// page and EB Garamond, used for the book typography, are embedded in the
+// executable.
 package main
 
 import (
@@ -98,6 +99,27 @@ func dataDir() (string, error) {
 		}
 		return filepath.Join(home, ".local", "share", "quiet"), nil
 	}
+}
+
+// defaultDBPath prefers a quiet.db next to the executable, so Quiet can be
+// carried around together with the writing; otherwise it uses dataDir.
+func defaultDBPath() (string, error) {
+	if exe, err := os.Executable(); err == nil {
+		if exe, err := filepath.EvalSymlinks(exe); err == nil {
+			path := filepath.Join(filepath.Dir(exe), "quiet.db")
+			if info, err := os.Stat(path); err == nil && info.Mode().IsRegular() {
+				return path, nil
+			}
+		}
+	}
+	dir, err := dataDir()
+	if err != nil {
+		return "", err
+	}
+	if err := os.MkdirAll(dir, 0o700); err != nil {
+		return "", err
+	}
+	return filepath.Join(dir, "quiet.db"), nil
 }
 
 func openDB(path string) (*sql.DB, error) {
@@ -498,7 +520,7 @@ func openBrowser(url string) {
 
 func main() {
 	port := flag.Int("port", 8765, "port to listen on")
-	dbPath := flag.String("db", "", "database file (default: quiet.db in the user's data directory)")
+	dbPath := flag.String("db", "", "database file (default: quiet.db next to the executable if there is one, else in the user's data directory)")
 	noBrowser := flag.Bool("no-browser", false, "do not open the browser")
 	flag.Parse()
 
@@ -510,14 +532,10 @@ func main() {
 
 func run(port int, dbPath string, browser bool) error {
 	if dbPath == "" {
-		dir, err := dataDir()
-		if err != nil {
+		var err error
+		if dbPath, err = defaultDBPath(); err != nil {
 			return err
 		}
-		if err := os.MkdirAll(dir, 0o700); err != nil {
-			return err
-		}
-		dbPath = filepath.Join(dir, "quiet.db")
 	}
 	db, err := openDB(dbPath)
 	if err != nil {
